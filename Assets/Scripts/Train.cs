@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using UnityEditor.ShaderKeywordFilter;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
-public class Train : MonoBehaviour
+public class Train : MonoBehaviour, IPointerClickHandler
 {
     int trainSize;
     int _lastPlayedDominoNum;
@@ -42,10 +43,10 @@ public class Train : MonoBehaviour
             int[] randDomino = drawPile[Random.Range(0,drawPile.Count)];
             if (!_spareDominoes.Contains(randDomino))
             {
-                print("Hello");
                 GameObject dominoCopy = Instantiate(_domino);
                 GameObject firstNumber = Instantiate(numbers[randDomino[0]],dominoCopy.transform);
                 GameObject secondNumber = Instantiate(numbers[randDomino[1]],dominoCopy.transform);
+                dominoCopy.GetComponent<Domino>().DominoNums = randDomino;
                 firstNumber.transform.localPosition = new(0,0.25f,0);
                 secondNumber.transform.localPosition = new(0,-0.25f,0);
                 dominoCopy.SetActive(false);
@@ -56,7 +57,23 @@ public class Train : MonoBehaviour
         foreach(int[] domino in _spareDominoes){drawPile.Remove(domino);}
         FindBestPath();
         print("Found best path");
-        foreach(int[] domino in _bestDominoPath){AddDominoToTrain(domino);}
+        float spawnX = 0;
+        if (name == "Train 1")
+        {
+            foreach (int[] domino in _bestDominoPath)
+            {
+                _dominoObjects[domino].SetActive(true);
+                _dominoObjects[domino].transform.position = new(spawnX, -1.5f, 0);
+                spawnX += 0.5f;
+            }
+            foreach (int[] domino in _spareDominoes)
+            {
+                _dominoObjects[domino].SetActive(true);
+                _dominoObjects[domino].transform.position = new(spawnX, -1.5f, 0);
+                spawnX += 0.5f;
+            }   
+        }
+        // foreach(int[] domino in _bestDominoPath){AddDominoToTrain(domino);}
         // _bestDominoPath.Clear();
     }
 
@@ -74,6 +91,10 @@ public class Train : MonoBehaviour
         for (int i = 0; i < _spareDominoes.Count; i++)
         {
             FindBestPathRecurLoop(currentDominoPath,_lastPlayedDominoNum);
+        }
+        foreach(int[] domino in _bestDominoPath)
+        {
+            _spareDominoes.Remove(domino);
         }
     }
 
@@ -162,12 +183,36 @@ public class Train : MonoBehaviour
         _lastPlayedDominoPos = dominoTransform.localPosition;
         _lastPlayedDominoNum = dominoNums[0] == _lastPlayedDominoNum ? dominoNums[1] : dominoNums[0];
         // _bestDominoPath.Remove(dominoNums);
-         _dominoObjects[dominoNums].SetActive(true);
+        _dominoObjects[dominoNums].SetActive(true);
         _dominoObjects.Remove(dominoNums);
     }
 
     public int GetLastPlayedDominoNum()
     {
         return _lastPlayedDominoNum;
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        CheckIfDominoCanBeAdded();
+    }
+
+    public void CheckIfDominoCanBeAdded()
+    {
+        //TODO: Add checks for who's turn it is and wether the train is open
+        GameObject clickedDomino = GameManager.Instance.ClickedDomino;
+        if(clickedDomino != null)
+        {
+            Domino clickedDominoScript = clickedDomino.GetComponent<Domino>();
+            if (clickedDominoScript.DominoNums[0] != _lastPlayedDominoNum && clickedDominoScript.DominoNums[1] != _lastPlayedDominoNum)
+            {
+                print("This domino cannot be placed");
+            }
+            else
+            {
+                clickedDominoScript.Placed(gameObject);
+                AddDominoToTrain(clickedDominoScript.DominoNums);
+            }
+        }
     }
 }

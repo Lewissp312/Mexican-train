@@ -50,6 +50,9 @@ TagManager:
   - name: Domino Items
     uniqueID: 1465086807
     locked: 0
+  - name: Selected Domino
+    uniqueID: 1294128929
+    locked: 0
   m_RenderingLayers:
   - Default
   - Light Layer 1

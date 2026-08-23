@@ -2,11 +2,19 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Numerics;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class GameManager : MonoBehaviour
 {
+    public static GameManager Instance;
+    GameObject _clickedDomino;
+    public GameObject ClickedDomino
+    {
+        get => _clickedDomino;
+        set => _clickedDomino = value;
+    }
     // List<int[]> _bestDominoPath;
     List<int[]> _drawPile;
     // List<int[]> _spareDominoes;
@@ -19,6 +27,9 @@ public class GameManager : MonoBehaviour
 
     void Awake()
     {
+        if (Instance != null && Instance != this) Destroy(gameObject);
+        else Instance = this;
+        _clickedDomino = null;
         _drawPile = new();
         GenerateDrawPile();
     } 
@@ -54,7 +65,7 @@ public class GameManager : MonoBehaviour
 
     void GenerateDrawPile()
     {
-        for(int i=0; i < _numbers.Length; i++)
+        for(int i=0; i < _numbers.Length - 1; i++)
         {
             for (int k=i; k < _numbers.Length; k++)
             {
