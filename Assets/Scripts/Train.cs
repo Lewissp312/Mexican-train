@@ -1,5 +1,6 @@
+using System.Collections;
 using System.Collections.Generic;
-using UnityEditor.ShaderKeywordFilter;
+// using System.Numerics;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -8,15 +9,18 @@ public class Train : MonoBehaviour, IPointerClickHandler
     int trainSize;
     int _lastPlayedDominoNum;
     Vector3 _lastPlayedDominoPos;
-    Vector3 _rightPosVector = new(0.42f,-0.6f,0);
-    Vector3 _leftPosVector = new(-0.42f,-0.6f,0);
+    readonly Vector3 _rightPosVector = new(0.42f,-0.6f,0);
+    readonly Vector3 _leftPosVector = new(-0.42f,-0.6f,0);
+    readonly Vector3 _deckViewingPos = new(-5,-53,0);
     Dictionary<int[],GameObject> _dominoObjects;
     List<int[]> _bestDominoPath;
     List<int[]> _spareDominoes;
     [SerializeField] GameObject _domino;
+    [SerializeField] GameObject _cannotPlaceDominoText;
 
     void Awake()
     {
+        //TODO: Add switch here for deciding deckviewingpos based on player number
         _lastPlayedDominoNum = 12;
         _bestDominoPath = new();
         _spareDominoes = new();
@@ -55,26 +59,51 @@ public class Train : MonoBehaviour, IPointerClickHandler
             }
         } while (_spareDominoes.Count < 11);
         foreach(int[] domino in _spareDominoes){drawPile.Remove(domino);}
+        float spawnX = _deckViewingPos.x;
+        float spawnY = _deckViewingPos.y;
+        foreach (int[] domino in _spareDominoes)
+        {
+            _dominoObjects[domino].SetActive(true);
+            _dominoObjects[domino].transform.position = new(spawnX, spawnY, 0);
+            spawnX += 0.5f;
+            if (spawnX > 5){spawnX = -5;spawnY -= 2;}
+        }
+        // foreach (int[] domino in _spareDominoes)
+        // {
+        //     _dominoObjects[domino].SetActive(true);
+        //     _dominoObjects[domino].transform.position = new(spawnX, spawnY, 0);
+        //     spawnX += 0.5f;
+        // }   
         FindBestPath();
         print("Found best path");
-        float spawnX = 0;
-        if (name == "Train 1")
-        {
-            foreach (int[] domino in _bestDominoPath)
-            {
-                _dominoObjects[domino].SetActive(true);
-                _dominoObjects[domino].transform.position = new(spawnX, -1.5f, 0);
-                spawnX += 0.5f;
-            }
-            foreach (int[] domino in _spareDominoes)
-            {
-                _dominoObjects[domino].SetActive(true);
-                _dominoObjects[domino].transform.position = new(spawnX, -1.5f, 0);
-                spawnX += 0.5f;
-            }   
-        }
         // foreach(int[] domino in _bestDominoPath){AddDominoToTrain(domino);}
         // _bestDominoPath.Clear();
+    }
+
+    public void ShowBestPath() //Background of button text learned from here: https://youtu.be/DtYAfmsoCxg
+    {
+        if (GameManager.Instance.ClickedDomino != null)
+        {
+            GameManager.Instance.ClickedDomino.GetComponent<Domino>().DeselectDomino();
+        }
+        float spawnX = _deckViewingPos.x;
+        float spawnY = _deckViewingPos.y;
+        foreach (int[] domino in _bestDominoPath)
+        {
+            _dominoObjects[domino].SetActive(true);
+            _dominoObjects[domino].transform.position = new(spawnX, spawnY, 0);
+            spawnX += 0.5f;
+            if (spawnX > 5){spawnX = -5;spawnY -= 2;}
+        }
+        spawnX = -5;
+        spawnY -= 2;
+        foreach (int[] domino in _spareDominoes)
+        {
+            _dominoObjects[domino].SetActive(true);
+            _dominoObjects[domino].transform.position = new(spawnX, spawnY, 0);
+            spawnX += 0.5f;
+            if (spawnX > 5){spawnX = -5;spawnY -= 2;}
+        }
     }
 
     void FindBestPath()
@@ -173,7 +202,6 @@ public class Train : MonoBehaviour, IPointerClickHandler
         else
         {
             dominoTransform.localPosition = trainSize % 2 != 0 ? _lastPlayedDominoPos + _rightPosVector : _lastPlayedDominoPos + _leftPosVector;
-            //left
         }
         if(dominoNums[1] == _lastPlayedDominoNum)
         {
@@ -182,7 +210,14 @@ public class Train : MonoBehaviour, IPointerClickHandler
         trainSize++;
         _lastPlayedDominoPos = dominoTransform.localPosition;
         _lastPlayedDominoNum = dominoNums[0] == _lastPlayedDominoNum ? dominoNums[1] : dominoNums[0];
-        // _bestDominoPath.Remove(dominoNums);
+        if (_bestDominoPath.Contains(dominoNums))
+        {
+            _bestDominoPath.Remove(dominoNums);
+        }
+        else
+        {
+            _spareDominoes.Remove(dominoNums);
+        }
         _dominoObjects[dominoNums].SetActive(true);
         _dominoObjects.Remove(dominoNums);
     }
@@ -199,14 +234,15 @@ public class Train : MonoBehaviour, IPointerClickHandler
 
     public void CheckIfDominoCanBeAdded()
     {
-        //TODO: Add checks for who's turn it is and wether the train is open
+        //TODO: Add checks for who's turn it is and whether the train is open
         GameObject clickedDomino = GameManager.Instance.ClickedDomino;
         if(clickedDomino != null)
         {
             Domino clickedDominoScript = clickedDomino.GetComponent<Domino>();
             if (clickedDominoScript.DominoNums[0] != _lastPlayedDominoNum && clickedDominoScript.DominoNums[1] != _lastPlayedDominoNum)
             {
-                print("This domino cannot be placed");
+                StopAllCoroutines();
+                StartCoroutine(CannotPlaceDominoTextTimer(clickedDomino.transform.position));
             }
             else
             {
@@ -214,5 +250,14 @@ public class Train : MonoBehaviour, IPointerClickHandler
                 AddDominoToTrain(clickedDominoScript.DominoNums);
             }
         }
+    }
+
+    IEnumerator CannotPlaceDominoTextTimer(Vector3 dominoPos)
+    {
+        //TODO: Remove this text when someone finishes their turn or the game
+        // _cannotPlaceDominoText.transform.position = dominoPos;
+        _cannotPlaceDominoText.SetActive(true);
+        yield return new WaitForSeconds(3);
+        _cannotPlaceDominoText.SetActive(false);
     }
 }

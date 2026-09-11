@@ -1,11 +1,10 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.EventSystems;
-using UnityEngine.UIElements;
 using UnityEngine.Rendering;
 
 // [RequireComponent(typeof(SortingGroup))]
-public class Domino : MonoBehaviour, IPointerClickHandler //https://discussions.unity.com/t/solved-detecting-mouse-click-on-an-object-in-2d-game/668634
+public class Domino : MonoBehaviour, IPointerClickHandler //Detecting mouse clicks: https://discussions.unity.com/t/solved-detecting-mouse-click-on-an-object-in-2d-game/668634
 {
     bool isSelected;
     InputAction _click;
@@ -41,7 +40,7 @@ public class Domino : MonoBehaviour, IPointerClickHandler //https://discussions.
         {
             print("Worked");
             print(_dominoNums);
-            transform.parent = null;
+            // transform.parent = null;
             isSelected = true;
             transform.rotation = new(0,0,0,0);
             sortingLayer.enabled = true;
@@ -51,6 +50,20 @@ public class Domino : MonoBehaviour, IPointerClickHandler //https://discussions.
         {
             _trainScript.CheckIfDominoCanBeAdded();
         }
+        else if(GameManager.Instance.ClickedDomino == gameObject && transform.position.y < -50)
+        {
+            // transform.parent = null;
+            isSelected = false;
+            sortingLayer.enabled = false;
+            GameManager.Instance.ClickedDomino = null;
+        }
+    }
+
+    public void DeselectDomino()
+    {
+        isSelected = false;
+        sortingLayer.enabled = false;
+        GameManager.Instance.ClickedDomino = null;
     }
 
     public void Placed(GameObject train)

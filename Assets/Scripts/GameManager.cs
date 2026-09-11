@@ -1,10 +1,5 @@
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Numerics;
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class GameManager : MonoBehaviour
 {
@@ -15,27 +10,30 @@ public class GameManager : MonoBehaviour
         get => _clickedDomino;
         set => _clickedDomino = value;
     }
+
+    int _currentTurn;
     // List<int[]> _bestDominoPath;
     List<int[]> _drawPile;
     // List<int[]> _spareDominoes;
     // Dictionary<int[],GameObject> _dominoObjects;
     // Train _trainScript;
     [SerializeField] GameObject _domino;
-    [SerializeField] GameObject[] _numbers;
-    [SerializeField] GameObject[] trains;
+    [SerializeField] GameObject[] _numbers; 
+    [SerializeField] GameObject[] _trains;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
     void Awake()
     {
         if (Instance != null && Instance != this) Destroy(gameObject);
         else Instance = this;
+        _currentTurn = 1;
         _clickedDomino = null;
         _drawPile = new();
         GenerateDrawPile();
     } 
     void Start()
     {
-        foreach(GameObject train in trains)
+        foreach(GameObject train in _trains)
         {
             train.GetComponent<Train>().GeneratePlayerDominoes(_drawPile,_numbers);
         }
