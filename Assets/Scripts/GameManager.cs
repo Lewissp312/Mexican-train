@@ -5,25 +5,27 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
     GameObject _clickedDomino;
-    public GameObject ClickedDomino
-    {
-        get => _clickedDomino;
-        set => _clickedDomino = value;
-    }
-
+    public GameObject ClickedDomino{get => _clickedDomino; set => _clickedDomino = value;}
+    bool _isCpuTurn;
+    public bool IsCpuTurn{get => _isCpuTurn;}
     int _currentTurn;
+    public int CurrentTurn{get => _currentTurn;}
     // List<int[]> _bestDominoPath;
     List<int[]> _drawPile;
+    public List<int[]> DrawPile{get => _drawPile;}
     // List<int[]> _spareDominoes;
     // Dictionary<int[],GameObject> _dominoObjects;
     // Train _trainScript;
-    [SerializeField] GameObject _domino;
+    // [SerializeField] GameObject _domino;
     [SerializeField] GameObject[] _numbers; 
+    public GameObject[] Numbers{get => _numbers;}
     [SerializeField] GameObject[] _trains;
+    public GameObject[] Trains{get => _trains;}
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
     void Awake()
     {
+        _currentTurn = 1;
         if (Instance != null && Instance != this) Destroy(gameObject);
         else Instance = this;
         _currentTurn = 1;
@@ -35,25 +37,21 @@ public class GameManager : MonoBehaviour
     {
         foreach(GameObject train in _trains)
         {
-            train.GetComponent<Train>().GeneratePlayerDominoes(_drawPile,_numbers);
-        }
+            if (train.name == "Train 1")
+            {
+                train.GetComponent<Train>().GenerateStartingDominoes();   
+            }
 
-        // _trainScript = _train.GetComponent<Train>();
-        // print("Player dominoes");
-        // for(int i=0; i < 15; i++)
-        // {
-        //     print($"{_spareDominoes[i][0]},{_spareDominoes[i][1]}");
-        // }
-        // print("Best domino path");
-        // foreach(int[] domino in _bestDominoPath)
-        // {
-        //     print($"{domino[0]},{domino[1]}");
-        //     _spareDominoes.Remove(domino);
-        //     _dominoObjects[domino].SetActive(true);
-        //     _trainScript.AddDominoToTrain(_dominoObjects[domino],domino);
-        //     _dominoObjects.Remove(domino);
-        // }
-        // print($"Spare domino total: {_spareDominoes.Count}");
+            // Train trainScript =  train.GetComponent<Train>();
+            // if (train.name != "Mexican Train")
+            // {
+            //     train.GetComponent<Train>().GenerateStartingDominoes();   
+            // }
+            // else
+            // {
+            //     print("Not loaded");
+            // }
+        }
     }
 
     // Update is called once per frame

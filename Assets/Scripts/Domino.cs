@@ -7,6 +7,11 @@ using UnityEngine.Rendering;
 public class Domino : MonoBehaviour, IPointerClickHandler //Detecting mouse clicks: https://discussions.unity.com/t/solved-detecting-mouse-click-on-an-object-in-2d-game/668634
 {
     bool isSelected;
+    bool _isOnTrain;
+    public bool IsOnTrain
+    {
+        set => _isOnTrain = value;
+    }
     InputAction _click;
     SortingGroup sortingLayer;
     int[] _dominoNums;
@@ -16,16 +21,15 @@ public class Domino : MonoBehaviour, IPointerClickHandler //Detecting mouse clic
         set => _dominoNums = value; 
     } 
     GameObject _train;
-    // public GameObject Train
-    // {
-    //     get => _train;
-    //     set
-    //     {
-    //         _train = value;
-    //         _trainScript = _train.GetComponent<Train>();
-    //     }
-    // } 
     Train _trainScript;
+    public Train TrainScript
+    {
+        get => _trainScript;
+        set
+        {
+            _trainScript = value;    
+        }
+    } 
 
     void Awake()
     {
@@ -36,26 +40,20 @@ public class Domino : MonoBehaviour, IPointerClickHandler //Detecting mouse clic
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (GameManager.Instance.ClickedDomino == null)
+        if (!_isOnTrain && GameManager.Instance.ClickedDomino == null)
         {
-            print("Worked");
-            print(_dominoNums);
-            // transform.parent = null;
             isSelected = true;
             transform.rotation = new(0,0,0,0);
             sortingLayer.enabled = true;
             GameManager.Instance.ClickedDomino = gameObject;
         }
-        else if (_train != null)
+        else if (_isOnTrain)
         {
             _trainScript.CheckIfDominoCanBeAdded();
         }
-        else if(GameManager.Instance.ClickedDomino == gameObject && transform.position.y < -50)
+        else if(isSelected && transform.position.y < -50)
         {
-            // transform.parent = null;
-            isSelected = false;
-            sortingLayer.enabled = false;
-            GameManager.Instance.ClickedDomino = null;
+            DeselectDomino();
         }
     }
 
@@ -66,13 +64,11 @@ public class Domino : MonoBehaviour, IPointerClickHandler //Detecting mouse clic
         GameManager.Instance.ClickedDomino = null;
     }
 
-    public void Placed(GameObject train)
+    public void Placed()
     {
-        isSelected = false;
-        sortingLayer.enabled = false;
-        GameManager.Instance.ClickedDomino = null;
-        _train = train;
-        _trainScript = _train.GetComponent<Train>();
+        DeselectDomino();
+        _isOnTrain = true;
+        //_trainScript.RemoveDomino(_dominoNums);
     }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created

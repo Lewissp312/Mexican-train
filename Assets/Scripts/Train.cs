@@ -6,6 +6,7 @@ using UnityEngine.EventSystems;
 
 public class Train : MonoBehaviour, IPointerClickHandler
 {
+    bool hasPlacedDouble;
     int trainSize;
     int _lastPlayedDominoNum;
     Vector3 _lastPlayedDominoPos;
@@ -13,16 +14,17 @@ public class Train : MonoBehaviour, IPointerClickHandler
     readonly Vector3 _leftPosVector = new(-0.42f,-0.6f,0);
     readonly Vector3 _deckViewingPos = new(-5,-53,0);
     Dictionary<int[],GameObject> _dominoObjects;
-    List<int[]> _bestDominoPath;
+    List<int[]> _bestPathDominoes;
     List<int[]> _spareDominoes;
+    [SerializeField] bool isPublicTrain;
+    [SerializeField] int _playerNum;
     [SerializeField] GameObject _domino;
     [SerializeField] GameObject _cannotPlaceDominoText;
 
     void Awake()
     {
-        //TODO: Add switch here for deciding deckviewingpos based on player number
         _lastPlayedDominoNum = 12;
-        _bestDominoPath = new();
+        _bestPathDominoes = new();
         _spareDominoes = new();
         _dominoObjects = new();
     } 
@@ -39,45 +41,43 @@ public class Train : MonoBehaviour, IPointerClickHandler
         
     }
 
-    public void GeneratePlayerDominoes(List<int[]> drawPile,GameObject[] numbers)
+    public void GenerateStartingDominoes()
     { //add the starting num here if you want to control it in game manager (currently always set to the double twelve)
       //TODO: Adjust the number of dominoes the player gets based on how many players there are
+        List<int[]> drawPile = GameManager.Instance.DrawPile;
         do
         {
-            int[] randDomino = drawPile[Random.Range(0,drawPile.Count)];
-            if (!_spareDominoes.Contains(randDomino))
-            {
-                GameObject dominoCopy = Instantiate(_domino);
-                GameObject firstNumber = Instantiate(numbers[randDomino[0]],dominoCopy.transform);
-                GameObject secondNumber = Instantiate(numbers[randDomino[1]],dominoCopy.transform);
-                dominoCopy.GetComponent<Domino>().DominoNums = randDomino;
-                firstNumber.transform.localPosition = new(0,0.25f,0);
-                secondNumber.transform.localPosition = new(0,-0.25f,0);
-                dominoCopy.SetActive(false);
-                _dominoObjects.Add(randDomino,dominoCopy);
-                _spareDominoes.Add(randDomino);                
-            }
-        } while (_spareDominoes.Count < 11);
-        foreach(int[] domino in _spareDominoes){drawPile.Remove(domino);}
-        float spawnX = _deckViewingPos.x;
-        float spawnY = _deckViewingPos.y;
-        foreach (int[] domino in _spareDominoes)
+            AddDominoToDeck(drawPile);
+            // int[] randDomino = drawPile[Random.Range(0,drawPile.Count)];
+            // if (!_spareDominoes.Contains(randDomino))
+            // {
+            //     GameObject dominoCopy = Instantiate(_domino);
+            //     GameObject firstNumber = Instantiate(numbers[randDomino[0]],dominoCopy.transform);
+            //     GameObject secondNumber = Instantiate(numbers[randDomino[1]],dominoCopy.transform);
+            //     Domino dominoScript = dominoCopy.GetComponent<Domino>();
+            //     dominoScript.DominoNums = randDomino;
+            //     dominoScript.TrainScript = gameObject.GetComponent<Train>();
+            //     firstNumber.transform.localPosition = new(0,0.25f,0);
+            //     secondNumber.transform.localPosition = new(0,-0.25f,0);
+            //     // dominoCopy.SetActive(false);
+            //     _dominoObjects.Add(randDomino,dominoCopy);
+            //     _spareDominoes.Add(randDomino);                
+            // }
+        } while (_spareDominoes.Count < 15);
+        // foreach(int[] domino in _spareDominoes){drawPile.Remove(domino);}
+        if (_playerNum == 1)
         {
-            _dominoObjects[domino].SetActive(true);
-            _dominoObjects[domino].transform.position = new(spawnX, spawnY, 0);
-            spawnX += 0.5f;
-            if (spawnX > 5){spawnX = -5;spawnY -= 2;}
+            float spawnX = _deckViewingPos.x;
+            float spawnY = _deckViewingPos.y;
+            foreach (int[] domino in _spareDominoes)
+            {
+                _dominoObjects[domino].SetActive(true);
+                _dominoObjects[domino].transform.position = new(spawnX, spawnY, 0);
+                spawnX += 0.5f;
+                if (spawnX > 5){spawnX = -5;spawnY -= 2;}
+            }     
         }
-        // foreach (int[] domino in _spareDominoes)
-        // {
-        //     _dominoObjects[domino].SetActive(true);
-        //     _dominoObjects[domino].transform.position = new(spawnX, spawnY, 0);
-        //     spawnX += 0.5f;
-        // }   
         FindBestPath();
-        print("Found best path");
-        // foreach(int[] domino in _bestDominoPath){AddDominoToTrain(domino);}
-        // _bestDominoPath.Clear();
     }
 
     public void ShowBestPath() //Background of button text learned from here: https://youtu.be/DtYAfmsoCxg
@@ -88,7 +88,7 @@ public class Train : MonoBehaviour, IPointerClickHandler
         }
         float spawnX = _deckViewingPos.x;
         float spawnY = _deckViewingPos.y;
-        foreach (int[] domino in _bestDominoPath)
+        foreach (int[] domino in _bestPathDominoes)
         {
             _dominoObjects[domino].SetActive(true);
             _dominoObjects[domino].transform.position = new(spawnX, spawnY, 0);
@@ -106,22 +106,78 @@ public class Train : MonoBehaviour, IPointerClickHandler
         }
     }
 
+    public void AddDominoToDeckButton()
+    {
+        // print("Starting");
+        AddDominoToDeck(GameManager.Instance.DrawPile);
+        FindBestPath();
+        // foreach(int[] dominoes in _spareDominoes)
+        // {
+        //     _dominoObjects[dominoes].SetActive(true);
+        // }
+        // foreach(int[] dominoes in _bestPathDominoes)
+        // {
+        //     _dominoObjects[dominoes].SetActive(true);
+        // }
+        // print("End");
+    }
+
+    void AddDominoToDeck(List<int[]> drawPile)
+    {
+        if (drawPile.Count == 0)
+        {
+            print("No more dominoes");
+            return;
+        }
+        GameObject[] numbers = GameManager.Instance.Numbers;
+        bool isAlreadyInDeck = true;
+        do
+        {
+            int[] randDomino = drawPile[Random.Range(0,drawPile.Count)];
+            if (!_spareDominoes.Contains(randDomino) && !_bestPathDominoes.Contains(randDomino))
+            {
+                GameObject dominoCopy = Instantiate(_domino);
+                GameObject firstNumber = Instantiate(numbers[randDomino[0]],dominoCopy.transform);
+                GameObject secondNumber = Instantiate(numbers[randDomino[1]],dominoCopy.transform);
+                Domino dominoScript = dominoCopy.GetComponent<Domino>();
+                dominoScript.DominoNums = randDomino;
+                dominoScript.TrainScript = this;
+                firstNumber.transform.localPosition = new(0,0.25f,0);
+                secondNumber.transform.localPosition = new(0,-0.25f,0);
+                _dominoObjects.Add(randDomino,dominoCopy);
+                _spareDominoes.Add(randDomino);
+                dominoCopy.transform.position = new(_deckViewingPos.x,_deckViewingPos.y - 4, 1);
+                if (_playerNum == 1)
+                {
+                    dominoCopy.SetActive(true);
+                }
+                else
+                {
+                    dominoCopy.SetActive(false);
+                }
+                // dominoCopy.SetActive(false);
+                isAlreadyInDeck = false;
+                drawPile.Remove(randDomino);                
+            } 
+        } while (isAlreadyInDeck);
+    }
+
     void FindBestPath()
     {
-        if(_bestDominoPath.Count > 0)
+        if(_bestPathDominoes.Count > 0)
         {
-            foreach(int[] domino in _bestDominoPath)
+            foreach(int[] domino in _bestPathDominoes)
             {
                 _spareDominoes.Add(domino);
             }
-            _bestDominoPath.Clear();
+            _bestPathDominoes.Clear();
         }
         List<int[]> currentDominoPath = new();
         for (int i = 0; i < _spareDominoes.Count; i++)
         {
             FindBestPathRecurLoop(currentDominoPath,_lastPlayedDominoNum);
         }
-        foreach(int[] domino in _bestDominoPath)
+        foreach(int[] domino in _bestPathDominoes)
         {
             _spareDominoes.Remove(domino);
         }
@@ -142,21 +198,21 @@ public class Train : MonoBehaviour, IPointerClickHandler
                 }
             }
         }
-        if (currentDominoPath.Count > _bestDominoPath.Count)
+        if (currentDominoPath.Count > _bestPathDominoes.Count)
         {
-            _bestDominoPath.Clear();
+            _bestPathDominoes.Clear();
             foreach(int[] domino in currentDominoPath)
             {
-                _bestDominoPath.Add(domino);
+                _bestPathDominoes.Add(domino);
             }
-        } else if(currentDominoPath.Count == _bestDominoPath.Count)
+        } else if(currentDominoPath.Count == _bestPathDominoes.Count)
         {
             if (IsCurrentPathWorthMoreThanBest(currentDominoPath))
             {
-                _bestDominoPath.Clear();
+                _bestPathDominoes.Clear();
                 foreach(int[] domino in currentDominoPath)
                 {
-                    _bestDominoPath.Add(domino);
+                    _bestPathDominoes.Add(domino);
                 }
             }
         }
@@ -166,7 +222,7 @@ public class Train : MonoBehaviour, IPointerClickHandler
     {
         int currentDominoPathTotal = 0;
         int bestDominoPathTotal = 0;
-        for(int i = 0; i < _bestDominoPath.Count; i++)
+        for(int i = 0; i < _bestPathDominoes.Count; i++)
         {
             if (currentDominoPath[i][0] == 0 && currentDominoPath[i][1] == 0)
             {
@@ -176,21 +232,23 @@ public class Train : MonoBehaviour, IPointerClickHandler
             {
                 currentDominoPathTotal += currentDominoPath[i][0] + currentDominoPath[i][1];
             }
-            if (_bestDominoPath[i][0] == 0 && _bestDominoPath[i][1] == 0)
+            if (_bestPathDominoes[i][0] == 0 && _bestPathDominoes[i][1] == 0)
             {
                 bestDominoPathTotal += 50;
             }
             else
             {
-                bestDominoPathTotal += _bestDominoPath[i][0] + _bestDominoPath[i][1];
+                bestDominoPathTotal += _bestPathDominoes[i][0] + _bestPathDominoes[i][1];
             }
         }
         return currentDominoPathTotal > bestDominoPathTotal;
     }
 
-    public void AddDominoToTrain(int[] dominoNums)
+    public void AddDominoToTrain(GameObject dominoToAdd)
     {
-        Transform dominoTransform = _dominoObjects[dominoNums].transform;
+        Domino dominoScript = dominoToAdd.GetComponent<Domino>();
+        dominoScript.Placed();
+        Transform dominoTransform = dominoToAdd.transform;
         dominoTransform.parent = transform;
         dominoTransform.rotation = transform.rotation;
         dominoTransform.position = transform.position;
@@ -203,23 +261,25 @@ public class Train : MonoBehaviour, IPointerClickHandler
         {
             dominoTransform.localPosition = trainSize % 2 != 0 ? _lastPlayedDominoPos + _rightPosVector : _lastPlayedDominoPos + _leftPosVector;
         }
+        int[] dominoNums = dominoScript.DominoNums;
         if(dominoNums[1] == _lastPlayedDominoNum)
         {
             dominoTransform.localRotation = new Quaternion(dominoTransform.localRotation.x,dominoTransform.localRotation.x,dominoTransform.localRotation.z + 180,dominoTransform.localRotation.w);
         }
         trainSize++;
         _lastPlayedDominoPos = dominoTransform.localPosition;
-        _lastPlayedDominoNum = dominoNums[0] == _lastPlayedDominoNum ? dominoNums[1] : dominoNums[0];
-        if (_bestDominoPath.Contains(dominoNums))
+        if (dominoNums[0] == dominoNums[1])
         {
-            _bestDominoPath.Remove(dominoNums);
+            hasPlacedDouble = true;
+            _lastPlayedDominoNum = dominoNums[0];
         }
         else
         {
-            _spareDominoes.Remove(dominoNums);
+            hasPlacedDouble = false; 
+            _lastPlayedDominoNum = dominoNums[0] == _lastPlayedDominoNum ? dominoNums[1] : dominoNums[0];   
         }
-        _dominoObjects[dominoNums].SetActive(true);
-        _dominoObjects.Remove(dominoNums);
+        dominoScript.TrainScript.RemoveDomino(dominoNums);
+        dominoScript.TrainScript = this;
     }
 
     public int GetLastPlayedDominoNum()
@@ -239,17 +299,49 @@ public class Train : MonoBehaviour, IPointerClickHandler
         if(clickedDomino != null)
         {
             Domino clickedDominoScript = clickedDomino.GetComponent<Domino>();
-            if (clickedDominoScript.DominoNums[0] != _lastPlayedDominoNum && clickedDominoScript.DominoNums[1] != _lastPlayedDominoNum)
+            if (clickedDominoScript.DominoNums[0] == _lastPlayedDominoNum || clickedDominoScript.DominoNums[1] == _lastPlayedDominoNum)
             {
-                StopAllCoroutines();
-                StartCoroutine(CannotPlaceDominoTextTimer(clickedDomino.transform.position));
+                if (isPublicTrain || _playerNum == GameManager.Instance.CurrentTurn)
+                {
+                    StopAllCoroutines();
+                    _cannotPlaceDominoText.SetActive(false);
+                    // clickedDominoScript.Placed();
+                    AddDominoToTrain(clickedDomino);   
+                }
+                else
+                {
+                    StopAllCoroutines();
+                    StartCoroutine(CannotPlaceDominoTextTimer(clickedDomino.transform.position));    
+                }
             }
             else
             {
-                clickedDominoScript.Placed(gameObject);
-                AddDominoToTrain(clickedDominoScript.DominoNums);
+                StopAllCoroutines();
+                StartCoroutine(CannotPlaceDominoTextTimer(clickedDomino.transform.position)); 
             }
         }
+    }
+
+    public void RemoveDomino(int[] dominoNums)
+    {
+        if (_bestPathDominoes.Contains(dominoNums))
+        {
+            if (dominoNums != _bestPathDominoes[0])
+            {
+                _bestPathDominoes.Remove(dominoNums);
+                FindBestPath();
+            }
+            else //If you remove the first item in the best path, it does not need to be recalculated
+            {
+                _bestPathDominoes.Remove(dominoNums);
+            }
+        }
+        else
+        {
+            _spareDominoes.Remove(dominoNums);
+        }
+        _dominoObjects[dominoNums].SetActive(true);
+        _dominoObjects.Remove(dominoNums);
     }
 
     IEnumerator CannotPlaceDominoTextTimer(Vector3 dominoPos)

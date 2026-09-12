@@ -14,6 +14,7 @@ public class CameraScript : MonoBehaviour
     bool isViewingDominoes;
     [SerializeField] TextMeshProUGUI _deckText; 
     [SerializeField] GameObject _showBestPathButton; 
+    [SerializeField] GameObject _addDominoToDeckButton;
 
 
     void Awake()
@@ -23,29 +24,38 @@ public class CameraScript : MonoBehaviour
         _gameViewingPos = new(0,0,-1);
     }
 
-    void Update()
+    void Update() 
+    //TODO: Add check here to stop the player using the camera when its a CPU's turn
+    //TODO: Focus the camera on the CPU's turn when they make one
     { //Camera code apadted from here: https://youtu.be/H7pjj1K91HE
-        if (_click.WasPressedThisFrame())
+        if (!GameManager.Instance.IsCpuTurn)
         {
-            _isDragging = true;
-            _origin = Camera.main.ScreenToWorldPoint((Vector3)Mouse.current.position.ReadValue());
-        } else if (_click.WasReleasedThisFrame())
-        {
-            _isDragging = false;
-        } else if (_changeView.WasPressedThisFrame())
-        {
-            if (!isViewingDominoes){_gameViewingPos = transform.position;}
-            transform.position = isViewingDominoes ? _gameViewingPos : _dominoViewingPos;
-            _deckText.enabled = !_deckText.enabled;
-            _showBestPathButton.SetActive(!_showBestPathButton.activeSelf);  
-            isViewingDominoes = !isViewingDominoes; 
+            if (_click.WasPressedThisFrame())
+            {
+                _isDragging = true;
+                _origin = Camera.main.ScreenToWorldPoint((Vector3)Mouse.current.position.ReadValue());
+            } else if (_click.WasReleasedThisFrame())
+            {
+                _isDragging = false;
+            } else if (_changeView.WasPressedThisFrame())
+            {
+                if (!isViewingDominoes){_gameViewingPos = transform.position;}
+                transform.position = isViewingDominoes ? _gameViewingPos : _dominoViewingPos;
+                _deckText.enabled = !_deckText.enabled;
+                _showBestPathButton.SetActive(!_showBestPathButton.activeSelf);
+                _addDominoToDeckButton.SetActive(!_addDominoToDeckButton.activeSelf);    
+                isViewingDominoes = !isViewingDominoes; 
+            }   
         }
     }
 
     void LateUpdate()
     {
-        if (!_isDragging || isViewingDominoes){return;}
-        _difference = Camera.main.ScreenToWorldPoint((Vector3)Mouse.current.position.ReadValue()) - transform.position; 
-        transform.position = _origin - _difference;
+        if (!GameManager.Instance.IsCpuTurn)
+        {
+            if (!_isDragging || isViewingDominoes){return;}
+            _difference = Camera.main.ScreenToWorldPoint((Vector3)Mouse.current.position.ReadValue()) - transform.position; 
+            transform.position = _origin - _difference;   
+        }
     }
 }
