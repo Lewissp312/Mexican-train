@@ -8,32 +8,26 @@ public class Domino : MonoBehaviour, IPointerClickHandler //Detecting mouse clic
 {
     bool isSelected;
     bool _isOnTrain;
-    public bool IsOnTrain
-    {
-        set => _isOnTrain = value;
-    }
+    public bool IsOnTrain{set => _isOnTrain = value;}
     InputAction _click;
     SortingGroup sortingLayer;
     int[] _dominoNums;
     public int[] DominoNums
-    {
-        get => _dominoNums;
-        set => _dominoNums = value; 
-    } 
+    {get => _dominoNums;set => _dominoNums = value; } 
+    CameraScript cameraScript;
     GameObject _train;
     Train _trainScript;
-    public Train TrainScript
-    {
-        get => _trainScript;
-        set
-        {
-            _trainScript = value;    
-        }
-    } 
+    public Train TrainScript{get => _trainScript; set => _trainScript = value;} 
 
     void Awake()
     {
         sortingLayer = GetComponent<SortingGroup>();
+    }
+
+    void Start()
+    {
+        cameraScript = Camera.main.gameObject.GetComponent<CameraScript>();
+        _click = InputSystem.actions.FindAction("Click");
     }
 
 
@@ -68,14 +62,10 @@ public class Domino : MonoBehaviour, IPointerClickHandler //Detecting mouse clic
     {
         DeselectDomino();
         _isOnTrain = true;
-        //_trainScript.RemoveDomino(_dominoNums);
+        cameraScript.CheckForBoundsUpdate(transform.position.x,transform.position.y);
     }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        _click = InputSystem.actions.FindAction("Click");
-    }
 
     // Update is called once per frame
     void Update()
@@ -87,15 +77,5 @@ public class Domino : MonoBehaviour, IPointerClickHandler //Detecting mouse clic
             Vector3 trueMousePos = new(mousePos.x,mousePos.y,1);
             transform.position = trueMousePos;
         }
-        // if (_click.WasPressedThisFrame())
-        // {
-        //     // print(_dominoNums);
-        //     Vector2 mousePos = Mouse.current.position.ReadValue();
-        //     // print(Camera.main.ScreenToWorldPoint(mousePos));
-        //     // if (Physics.Raycast(Camera.main.ScreenPointToRay(mousePos), out RaycastHit hit)) 
-        //     // {
-        //     //     print("Worked");
-        //     // }
-        // }
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -5,13 +6,23 @@ using UnityEngine.InputSystem;
 public class CameraScript : MonoBehaviour
 {
     InputAction _click;
-    InputAction _changeView;
+    InputAction _gameViewButton;
+    InputAction _deckViewButton;
+    InputAction _mexicanTrainViewButton;
     Vector3 _origin;
     Vector3 _difference;
-    Vector3 _gameViewingPos;
-    readonly Vector3 _dominoViewingPos = new(0,-55f,-1);
+    Vector3 _gameViewPos;
+    Vector3 _mexicanTrainViewPos;
+    readonly Vector3 _deckViewingPos = new(0,-55f,-1);
+    float _gameViewYBound;
+    float _gameViewXBound;
+    readonly float _mexicanTrainViewUpperYBound = 60;
+    float _mexicanTrainViewLowerYBound;
+    readonly float _mexicanTrainViewXBound = 110;
     bool _isDragging;
-    bool isViewingDominoes;
+    bool _isViewingGame;
+    bool _isViewingDeck;
+    bool _isViewingMexicanTrain;
     [SerializeField] TextMeshProUGUI _deckText; 
     [SerializeField] GameObject _showBestPathButton; 
     [SerializeField] GameObject _addDominoToDeckButton;
@@ -19,9 +30,16 @@ public class CameraScript : MonoBehaviour
 
     void Awake()
     {
+        _gameViewYBound = 3.5f;
+        _gameViewXBound = 7.5f;
+        _mexicanTrainViewLowerYBound = 60;
         _click = InputSystem.actions.FindAction("Click");
-        _changeView = InputSystem.actions.FindAction("Change View");
-        _gameViewingPos = new(0,0,-1);
+        _gameViewButton = InputSystem.actions.FindAction("Game View");
+        _deckViewButton = InputSystem.actions.FindAction("Deck View");
+        _mexicanTrainViewButton = InputSystem.actions.FindAction("Mexican Train View");
+        _isViewingGame = true;
+        _gameViewPos = new(0,0,-1);
+        _mexicanTrainViewPos = new(110,60,-1);
     }
 
     void Update() 
@@ -34,18 +52,23 @@ public class CameraScript : MonoBehaviour
             {
                 _isDragging = true;
                 _origin = Camera.main.ScreenToWorldPoint((Vector3)Mouse.current.position.ReadValue());
-            } else if (_click.WasReleasedThisFrame())
+            } 
+            else if (_click.WasReleasedThisFrame())
             {
                 _isDragging = false;
-            } else if (_changeView.WasPressedThisFrame())
+            }    
+            else if(_gameViewButton.WasPressedThisFrame() && !_isViewingGame)
             {
-                if (!isViewingDominoes){_gameViewingPos = transform.position;}
-                transform.position = isViewingDominoes ? _gameViewingPos : _dominoViewingPos;
-                _deckText.enabled = !_deckText.enabled;
-                _showBestPathButton.SetActive(!_showBestPathButton.activeSelf);
-                _addDominoToDeckButton.SetActive(!_addDominoToDeckButton.activeSelf);    
-                isViewingDominoes = !isViewingDominoes; 
-            }   
+                ActivateGameView();
+            }
+            else if (_deckViewButton.WasPressedThisFrame() && !_isViewingDeck)
+            {
+                ActivateDeckView();
+            }
+            else if(_mexicanTrainViewButton.WasPressedThisFrame() && !_isViewingMexicanTrain)
+            {
+                ActivateMexicanTrainView();
+            }
         }
     }
 
@@ -53,9 +76,127 @@ public class CameraScript : MonoBehaviour
     {
         if (!GameManager.Instance.IsCpuTurn)
         {
-            if (!_isDragging || isViewingDominoes){return;}
-            _difference = Camera.main.ScreenToWorldPoint((Vector3)Mouse.current.position.ReadValue()) - transform.position; 
-            transform.position = _origin - _difference;   
+            if (!_isDragging || _isViewingDeck){return;}
+            _difference = Camera.main.ScreenToWorldPoint((Vector3)Mouse.current.position.ReadValue()) - transform.position;
+            Vector3 newPos = _origin - _difference; 
+            UpdatePosition(newPos);
         }
+    }
+
+    void ActivateGameView()
+    {
+        if(_isViewingDeck)
+        {
+            _deckText.enabled = false;
+            _showBestPathButton.SetActive(false);
+            _addDominoToDeckButton.SetActive(false);    
+            _isViewingDeck = false; 
+        }
+        else
+        {
+            _mexicanTrainViewPos = transform.position;
+            _isViewingMexicanTrain = false;
+        }
+        transform.position = _gameViewPos;
+        _isViewingGame = true;
+    }
+    
+    void ActivateDeckView()
+    {
+        if(_isViewingGame)
+        {
+            _gameViewPos = transform.position;
+            _isViewingGame = false;
+        }
+        else
+        {
+            _mexicanTrainViewPos = transform.position;
+            _isViewingMexicanTrain = false;
+        }
+        transform.position = _deckViewingPos;
+        _deckText.enabled = true;
+        _showBestPathButton.SetActive(true);
+        _addDominoToDeckButton.SetActive(true);    
+        _isViewingDeck = true; 
+    }
+
+    void ActivateMexicanTrainView()
+    {
+        if(_isViewingGame)
+        {
+            _gameViewPos = transform.position;
+            _isViewingGame = false;
+        }
+        else
+        {
+            _deckText.enabled = false;
+            _showBestPathButton.SetActive(false);
+            _addDominoToDeckButton.SetActive(false);    
+            _isViewingDeck = false; 
+        }
+        transform.position = _mexicanTrainViewPos;
+        _isViewingMexicanTrain = true;
+    }
+
+    void UpdatePosition(Vector3 newPos)
+    {
+        float newX = newPos.x;
+        float newY = newPos.y;
+        if (_isViewingGame)
+        {
+            if(newX > _gameViewXBound)
+            {
+                newX = _gameViewXBound;
+            }
+            else if(newX < -_gameViewXBound)
+            {
+                newX = -_gameViewXBound;
+            }
+            if(newY > _gameViewYBound)
+            {
+                newY = _gameViewYBound;
+            }
+            else if(newY < -_gameViewYBound)
+            {
+                newY = -_gameViewYBound;
+            }
+        }
+        else
+        {
+            newX = _mexicanTrainViewXBound;
+            if(newY > _mexicanTrainViewUpperYBound)
+            {
+                newY = _mexicanTrainViewUpperYBound;
+            }
+            else if(newY < _mexicanTrainViewLowerYBound)
+            {
+                newY = _mexicanTrainViewLowerYBound;
+            }
+            
+        }
+        transform.position = new(newX,newY,-1); 
+    }
+
+    public void CheckForBoundsUpdate(float XPos, float YPos)
+    {
+        if (XPos < _mexicanTrainViewXBound)
+        {
+            if(Math.Abs(_gameViewXBound - XPos) <= 1 || Math.Abs(-_gameViewXBound - XPos) <= 1)
+            {
+                _gameViewXBound += 1;
+            }
+            if(Math.Abs(_gameViewYBound - YPos) <= 1 || Math.Abs(-_gameViewYBound - YPos) <= 1)
+            {
+                _gameViewYBound += 1;
+            }
+        }
+        else
+        {
+            if(Math.Abs(_mexicanTrainViewLowerYBound - YPos) <= 2) 
+            //|| (Math.Abs(-_mexicanTrainViewLowerYBound - YPos) <= 2))
+            {
+                _mexicanTrainViewLowerYBound -= 2;
+            }
+        } 
     }
 }

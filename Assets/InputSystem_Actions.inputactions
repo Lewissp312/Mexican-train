@@ -97,9 +97,27 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Change View",
+                    "name": "Game View",
                     "type": "Button",
                     "id": "a78aa02f-9660-4cd4-a71e-639322a46a5b",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Deck View",
+                    "type": "Button",
+                    "id": "0e012215-62a7-4694-a6e1-3a714d74d245",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Mexican Train View",
+                    "type": "Button",
+                    "id": "a1cc8642-3737-42ec-8a5e-81ebd5474d51",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -506,11 +524,33 @@
                 {
                     "name": "",
                     "id": "e7cea4fd-3d0b-4d15-92a9-d259a172ed0b",
-                    "path": "<Keyboard>/e",
+                    "path": "<Keyboard>/1",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Change View",
+                    "action": "Game View",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "361a27d6-67d3-430a-9c09-9dda1bfc8949",
+                    "path": "<Keyboard>/2",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Deck View",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "9eac6410-ebc2-4cc0-bdf5-dd0a10733bc8",
+                    "path": "<Keyboard>/3",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Mexican Train View",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
