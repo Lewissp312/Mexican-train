@@ -1351,7 +1351,7 @@ GameObject:
   - component: {fileID: 1046290234}
   - component: {fileID: 1046290233}
   m_Layer: 5
-  m_Name: Cannot Place Domino
+  m_Name: Middle Screen Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2117,7 +2117,15 @@ PrefabInstance:
       value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 354952497557318191, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
+      propertyPath: _middleScreenText
+      value: 
+      objectReference: {fileID: 54783667}
+    - target: {fileID: 354952497557318191, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
       propertyPath: _cannotPlaceDominoText
+      value: 
+      objectReference: {fileID: 1046290232}
+    - target: {fileID: 354952497557318191, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
+      propertyPath: _middleScreenTextObject
       value: 
       objectReference: {fileID: 1046290232}
     - target: {fileID: 963477903147598053, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
@@ -2125,7 +2133,15 @@ PrefabInstance:
       value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 963477903147598053, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
+      propertyPath: _middleScreenText
+      value: 
+      objectReference: {fileID: 54783667}
+    - target: {fileID: 963477903147598053, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
       propertyPath: _cannotPlaceDominoText
+      value: 
+      objectReference: {fileID: 1046290232}
+    - target: {fileID: 963477903147598053, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
+      propertyPath: _middleScreenTextObject
       value: 
       objectReference: {fileID: 1046290232}
     - target: {fileID: 1664049307147166991, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
@@ -2133,11 +2149,23 @@ PrefabInstance:
       value: Station
       objectReference: {fileID: 0}
     - target: {fileID: 2212516960608163597, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
+      propertyPath: _playerNum
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 2212516960608163597, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
       propertyPath: isPublicTrain
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2212516960608163597, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
+      propertyPath: _middleScreenText
+      value: 
+      objectReference: {fileID: 54783667}
+    - target: {fileID: 2212516960608163597, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
       propertyPath: _cannotPlaceDominoText
+      value: 
+      objectReference: {fileID: 1046290232}
+    - target: {fileID: 2212516960608163597, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
+      propertyPath: _middleScreenTextObject
       value: 
       objectReference: {fileID: 1046290232}
     - target: {fileID: 3892608707130426746, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
@@ -2145,7 +2173,15 @@ PrefabInstance:
       value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 3892608707130426746, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
+      propertyPath: _middleScreenText
+      value: 
+      objectReference: {fileID: 54783667}
+    - target: {fileID: 3892608707130426746, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
       propertyPath: _cannotPlaceDominoText
+      value: 
+      objectReference: {fileID: 1046290232}
+    - target: {fileID: 3892608707130426746, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
+      propertyPath: _middleScreenTextObject
       value: 
       objectReference: {fileID: 1046290232}
     - target: {fileID: 4363536292160098431, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
@@ -2153,7 +2189,15 @@ PrefabInstance:
       value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 4363536292160098431, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
+      propertyPath: _middleScreenText
+      value: 
+      objectReference: {fileID: 54783667}
+    - target: {fileID: 4363536292160098431, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
       propertyPath: _cannotPlaceDominoText
+      value: 
+      objectReference: {fileID: 1046290232}
+    - target: {fileID: 4363536292160098431, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
+      propertyPath: _middleScreenTextObject
       value: 
       objectReference: {fileID: 1046290232}
     - target: {fileID: 4577299973835859979, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
@@ -2161,7 +2205,15 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4577299973835859979, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
+      propertyPath: _middleScreenText
+      value: 
+      objectReference: {fileID: 54783667}
+    - target: {fileID: 4577299973835859979, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
       propertyPath: _cannotPlaceDominoText
+      value: 
+      objectReference: {fileID: 1046290232}
+    - target: {fileID: 4577299973835859979, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
+      propertyPath: _middleScreenTextObject
       value: 
       objectReference: {fileID: 1046290232}
     - target: {fileID: 4606021792264126058, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
@@ -2169,7 +2221,15 @@ PrefabInstance:
       value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 4606021792264126058, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
+      propertyPath: _middleScreenText
+      value: 
+      objectReference: {fileID: 54783667}
+    - target: {fileID: 4606021792264126058, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
       propertyPath: _cannotPlaceDominoText
+      value: 
+      objectReference: {fileID: 1046290232}
+    - target: {fileID: 4606021792264126058, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
+      propertyPath: _middleScreenTextObject
       value: 
       objectReference: {fileID: 1046290232}
     - target: {fileID: 6138744887847208380, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
@@ -2217,7 +2277,15 @@ PrefabInstance:
       value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 7507182078340957997, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
+      propertyPath: _middleScreenText
+      value: 
+      objectReference: {fileID: 54783667}
+    - target: {fileID: 7507182078340957997, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
       propertyPath: _cannotPlaceDominoText
+      value: 
+      objectReference: {fileID: 1046290232}
+    - target: {fileID: 7507182078340957997, guid: b5a7f9d1cb19ac445a07d922a21905b8, type: 3}
+      propertyPath: _middleScreenTextObject
       value: 
       objectReference: {fileID: 1046290232}
     m_RemovedComponents: []

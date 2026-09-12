@@ -10,6 +10,8 @@ public class GameManager : MonoBehaviour
     public bool IsCpuTurn{get => _isCpuTurn;}
     int _currentTurn;
     public int CurrentTurn{get => _currentTurn;}
+    int _doubleTrain;
+    public int DoubleTrain{get => _doubleTrain; set => _doubleTrain = value;}
     // List<int[]> _bestDominoPath;
     List<int[]> _drawPile;
     public List<int[]> DrawPile{get => _drawPile;}

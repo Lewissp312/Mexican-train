@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
+
 // using System.Numerics;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -19,7 +21,8 @@ public class Train : MonoBehaviour, IPointerClickHandler
     [SerializeField] bool isPublicTrain;
     [SerializeField] int _playerNum;
     [SerializeField] GameObject _domino;
-    [SerializeField] GameObject _cannotPlaceDominoText;
+    [SerializeField] GameObject _middleScreenTextObject;
+    [SerializeField] TextMeshProUGUI _middleScreenText;
 
     void Awake()
     {
@@ -271,14 +274,16 @@ public class Train : MonoBehaviour, IPointerClickHandler
         if (dominoNums[0] == dominoNums[1])
         {
             hasPlacedDouble = true;
+            GameManager.Instance.DoubleTrain = _playerNum;
             _lastPlayedDominoNum = dominoNums[0];
         }
         else
         {
-            hasPlacedDouble = false; 
+            hasPlacedDouble = false;
+            GameManager.Instance.DoubleTrain = 0; 
             _lastPlayedDominoNum = dominoNums[0] == _lastPlayedDominoNum ? dominoNums[1] : dominoNums[0];   
         }
-        dominoScript.TrainScript.RemoveDomino(dominoNums);
+        dominoScript.TrainScript.RemoveDominoFromDeck(dominoNums);
         dominoScript.TrainScript = this;
     }
 
@@ -301,28 +306,34 @@ public class Train : MonoBehaviour, IPointerClickHandler
             Domino clickedDominoScript = clickedDomino.GetComponent<Domino>();
             if (clickedDominoScript.DominoNums[0] == _lastPlayedDominoNum || clickedDominoScript.DominoNums[1] == _lastPlayedDominoNum)
             {
-                if (isPublicTrain || _playerNum == GameManager.Instance.CurrentTurn)
+                if ((isPublicTrain || _playerNum == GameManager.Instance.CurrentTurn) 
+                && (GameManager.Instance.DoubleTrain == 0 || GameManager.Instance.DoubleTrain == _playerNum))
                 {
                     StopAllCoroutines();
-                    _cannotPlaceDominoText.SetActive(false);
+                    _middleScreenTextObject.SetActive(false);
                     // clickedDominoScript.Placed();
                     AddDominoToTrain(clickedDomino);   
+                }
+                else if(GameManager.Instance.DoubleTrain != 0)
+                {
+                    StopAllCoroutines();
+                    StartCoroutine(DisplayTextTimer("You must complete the double first"));
                 }
                 else
                 {
                     StopAllCoroutines();
-                    StartCoroutine(CannotPlaceDominoTextTimer(clickedDomino.transform.position));    
+                    StartCoroutine(DisplayTextTimer("This domino cannot be placed here"));    
                 }
             }
             else
             {
                 StopAllCoroutines();
-                StartCoroutine(CannotPlaceDominoTextTimer(clickedDomino.transform.position)); 
+                StartCoroutine(DisplayTextTimer("This domino cannot be placed here")); 
             }
         }
     }
 
-    public void RemoveDomino(int[] dominoNums)
+    public void RemoveDominoFromDeck(int[] dominoNums)
     {
         if (_bestPathDominoes.Contains(dominoNums))
         {
@@ -344,12 +355,13 @@ public class Train : MonoBehaviour, IPointerClickHandler
         _dominoObjects.Remove(dominoNums);
     }
 
-    IEnumerator CannotPlaceDominoTextTimer(Vector3 dominoPos)
+    IEnumerator DisplayTextTimer(string textToDisplay)
     {
         //TODO: Remove this text when someone finishes their turn or the game
         // _cannotPlaceDominoText.transform.position = dominoPos;
-        _cannotPlaceDominoText.SetActive(true);
+        _middleScreenText.text = textToDisplay;
+        _middleScreenTextObject.SetActive(true);
         yield return new WaitForSeconds(3);
-        _cannotPlaceDominoText.SetActive(false);
+        _middleScreenTextObject.SetActive(false);
     }
 }
