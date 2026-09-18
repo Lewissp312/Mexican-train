@@ -15,25 +15,28 @@ public class Domino : MonoBehaviour, IPointerClickHandler //Detecting mouse clic
     public int[] DominoNums
     {get => _dominoNums;set => _dominoNums = value; } 
     CameraScript cameraScript;
-    GameObject _train;
     Train _trainScript;
     public Train TrainScript{get => _trainScript; set => _trainScript = value;} 
+
 
     void Awake()
     {
         sortingLayer = GetComponent<SortingGroup>();
+        cameraScript = Camera.main.gameObject.GetComponent<CameraScript>();
+        _click = InputSystem.actions.FindAction("Click");
     }
 
     void Start()
     {
-        cameraScript = Camera.main.gameObject.GetComponent<CameraScript>();
-        _click = InputSystem.actions.FindAction("Click");
+        // Camera.main.gameObject.GetComponent<CameraScript>();
+        // cameraScript = Camera.main.gameObject.GetComponent<CameraScript>();
     }
 
 
 
     public void OnPointerClick(PointerEventData eventData)
     {
+        if (!GameManager.Instance.CurrentTurnTrainScript.CanInteract){return;}
         if (!_isOnTrain && GameManager.Instance.ClickedDomino == null)
         {
             isSelected = true;
@@ -48,7 +51,8 @@ public class Domino : MonoBehaviour, IPointerClickHandler //Detecting mouse clic
         else if(isSelected && transform.position.y < -50)
         {
             DeselectDomino();
-        }
+        }   
+        
     }
 
     public void DeselectDomino()
@@ -58,11 +62,11 @@ public class Domino : MonoBehaviour, IPointerClickHandler //Detecting mouse clic
         GameManager.Instance.ClickedDomino = null;
     }
 
-    public void Placed()
+    public void Placed(bool isOnMexicanTrain)
     {
         DeselectDomino();
         _isOnTrain = true;
-        cameraScript.CheckForBoundsUpdate(transform.position.x,transform.position.y);
+        cameraScript.CheckForBoundsUpdate(transform.position.x,transform.position.y, isOnMexicanTrain);
     }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -70,7 +74,7 @@ public class Domino : MonoBehaviour, IPointerClickHandler //Detecting mouse clic
     // Update is called once per frame
     void Update()
     {
-        if (isSelected)
+        if (isSelected && transform.parent == null)
         {
             Vector2 mousePos = Mouse.current.position.ReadValue();
             mousePos = Camera.main.ScreenToWorldPoint(mousePos);

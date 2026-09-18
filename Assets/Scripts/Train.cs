@@ -1,16 +1,29 @@
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
-
-// using System.Numerics;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 public class Train : MonoBehaviour, IPointerClickHandler
 {
-    bool hasPlacedDouble;
-    int trainSize;
+    bool _isCPU;
+    public bool IsCPU{get => _isCPU; set => _isCPU = value;}
+    bool _isUsable;
+    public bool IsUsable{get => _isUsable; set => _isUsable = value;}
+    bool _canInteract;
+    public bool CanInteract{get => _canInteract;}
+    bool _canTakeTurn;
+    bool _canGoToPart1;
+    bool _canGoToPart2;
+    bool _canGoToPart3;
+    bool _canGoToPart4;
+    bool _canGoToPart5;
+    int _currentTurnPart;
+    public int CurrentTurnPart{set => _currentTurnPart = value;}
+    int _trainSize;
     int _lastPlayedDominoNum;
+    public int LastPlayedDominoNum{get => _lastPlayedDominoNum;}
+    SpriteRenderer _trainIndicatorRenderer;
     Vector3 _lastPlayedDominoPos;
     readonly Vector3 _rightPosVector = new(0.42f,-0.6f,0);
     readonly Vector3 _leftPosVector = new(-0.42f,-0.6f,0);
@@ -18,18 +31,25 @@ public class Train : MonoBehaviour, IPointerClickHandler
     Dictionary<int[],GameObject> _dominoObjects;
     List<int[]> _bestPathDominoes;
     List<int[]> _spareDominoes;
-    [SerializeField] bool isPublicTrain;
+    [SerializeField] bool _isPublicTrain;
+    public bool IsPublicTrain{get => _isPublicTrain;}
     [SerializeField] int _playerNum;
+    public int PlayerNum{get => _playerNum;}
     [SerializeField] GameObject _domino;
+    [SerializeField] GameObject _trainIndicator;
     [SerializeField] GameObject _middleScreenTextObject;
     [SerializeField] TextMeshProUGUI _middleScreenText;
 
     void Awake()
     {
+        _currentTurnPart = 1;
+        _canGoToPart1 = true;
         _lastPlayedDominoNum = 12;
         _bestPathDominoes = new();
         _spareDominoes = new();
         _dominoObjects = new();
+        _trainIndicatorRenderer = _trainIndicator.GetComponent<SpriteRenderer>();
+        if (_playerNum == 9){_isPublicTrain = true; ChangeUsability(true);}
     } 
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -41,46 +61,268 @@ public class Train : MonoBehaviour, IPointerClickHandler
     // Update is called once per frame
     void Update()
     {
+        if (_canTakeTurn)
+        {
+            switch (_currentTurnPart)
+            {
+                case 1:
+                    if (_canGoToPart1)
+                    {
+                        print($"I am {_playerNum} and CPU status is {_isCPU}");
+                        StopAllCoroutines();
+                        StartCoroutine(DisplayTextTimer($"Player {_playerNum}'s turn!")); 
+                        _currentTurnPart = 2;
+                        _canInteract = false;  
+                    }
+                    break;
+                case 2:
+                    if (_canGoToPart2)
+                    {
+                        FindBestPath();
+                        if (GameManager.Instance.DoubleTrainPlayerNum == 0)
+                        {
+                            ChangeUsability(true);
+                            if (_isPublicTrain)
+                            {
+                                //If you have something that can be placed on your public train, you must do it
+                                if (_bestPathDominoes.Count > 0)
+                                {
+                                    GameObject[] trains = GameManager.Instance.Trains;
+                                    foreach(GameObject train in trains)
+                                    {
+                                        Train trainScript = train.GetComponent<Train>();
+                                        if (trainScript.PlayerNum != _playerNum)
+                                        {
+                                            trainScript.ChangeUsability(false);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (!_isCPU && GameManager.Instance.DoubleTrainPlayerNum != _playerNum) //Do not need to do this if it's your second go as it's already been done
+                        {
+                            foreach(int[] dominoes in _spareDominoes){_dominoObjects[dominoes].SetActive(true);}
+                            foreach(int[] dominoes in _bestPathDominoes){_dominoObjects[dominoes].SetActive(true);}
+                        }
+                        if (!CanPlayerActuallyDoAnything())
+                        {
+                            StopAllCoroutines();
+                            _canInteract = false;
+                            if (GameManager.Instance.DrawPile.Count == 0)
+                            {
+                                StartCoroutine(DisplayTextTimer($"Player {_playerNum}, there are no moves you can make and the domino pile is empty"));
+                                _currentTurnPart = 5;  
+                                _canInteract = false;
+                            }
+                            else
+                            {
+                                StartCoroutine(DisplayTextTimer($"Player {_playerNum}, there are no moves you can make, getting a domino from the pile"));
+                                _currentTurnPart = 3; 
+                                _canInteract = false;                        
+                            }
+                        }
+                    }
+                    break;
+                case 3:
+                    if (_canGoToPart3)
+                    {
+                        AddDominoToDeck();
+                        StopAllCoroutines();
+                        StartCoroutine(DisplayTextTimer($"Player {_playerNum}, ({_spareDominoes[^1][0]},{_spareDominoes[^1][1]}) was added to your deck")); 
+                        _currentTurnPart = 4;  
+                        _canInteract = false;
+                    }
+                    break;
+                case 4:
+                    if (_canGoToPart4)
+                    {
+                        FindBestPath();
+                        if (_bestPathDominoes.Count > 0 && _isPublicTrain && GameManager.Instance.DoubleTrainPlayerNum == 0)
+                        {
+                            GameObject[] trains = GameManager.Instance.Trains;
+                            foreach(GameObject train in trains)
+                            {
+                                Train trainScript = train.GetComponent<Train>();
+                                if (trainScript.PlayerNum != _playerNum)
+                                {
+                                    trainScript.ChangeUsability(false);
+                                }
+                            } 
+                        }
+                        if (!CanPlayerActuallyDoAnything())
+                        {
+                            StopAllCoroutines();
+                            _canGoToPart5 = false;
+                            _currentTurnPart = 5;
+                            _canInteract = false;
+                            if (GameManager.Instance.DoubleTrainPlayerNum == 0)
+                            {
+                                if (!_isPublicTrain)
+                                {
+                                    _isPublicTrain = true;
+                                    StartCoroutine(DisplayTextTimer($"Player {PlayerNum}, that domino doesn't help you and your train is now public"));   
+                                }
+                                else
+                                {
+                                    StartCoroutine(DisplayTextTimer($"Player {PlayerNum}, unfortunately that doesn't help you"));      
+                                }
+                            }
+                            else
+                            {
+                                StartCoroutine(DisplayTextTimer($"Player {PlayerNum}, you did not complete the double"));
+                            }
+                        }   
+                    }
+                    break;
+                case 5:
+                    if (_canGoToPart5)
+                    {
+                        _canInteract = false;
+                        if(!_isCPU)
+                        {
+                            foreach(int[] dominoes in _spareDominoes){_dominoObjects[dominoes].SetActive(false);}
+                            foreach(int[] dominoes in _bestPathDominoes){_dominoObjects[dominoes].SetActive(false);}
+                        }
+                        if (GameManager.Instance.DoubleTrainPlayerNum == _playerNum)
+                        {
+                            GameObject[] trains = GameManager.Instance.Trains;
+                            foreach(GameObject train in trains)
+                            {
+                                Train trainScript = train.GetComponent<Train>();
+                                if (trainScript.PlayerNum != _playerNum)
+                                {
+                                    trainScript.ChangeUsability(false);
+                                }
+                            }
+                        }
+                        else if (!_isPublicTrain)
+                        {
+                            ChangeUsability(false);
+                        }
+                        if (_spareDominoes.Count == 0 && _bestPathDominoes.Count == 0){GameManager.Instance.PlayerHasWon(_playerNum);}
+                        else
+                        {
+                           _canTakeTurn = false;
+                           GameManager.Instance.IsAtEndOfTurn = true; 
+                        }   
+                    }
+                    break;
+            }
+        }
         
     }
 
     public void GenerateStartingDominoes()
     { //add the starting num here if you want to control it in game manager (currently always set to the double twelve)
       //TODO: Adjust the number of dominoes the player gets based on how many players there are
-        List<int[]> drawPile = GameManager.Instance.DrawPile;
-        do
-        {
-            AddDominoToDeck(drawPile);
-            // int[] randDomino = drawPile[Random.Range(0,drawPile.Count)];
-            // if (!_spareDominoes.Contains(randDomino))
-            // {
-            //     GameObject dominoCopy = Instantiate(_domino);
-            //     GameObject firstNumber = Instantiate(numbers[randDomino[0]],dominoCopy.transform);
-            //     GameObject secondNumber = Instantiate(numbers[randDomino[1]],dominoCopy.transform);
-            //     Domino dominoScript = dominoCopy.GetComponent<Domino>();
-            //     dominoScript.DominoNums = randDomino;
-            //     dominoScript.TrainScript = gameObject.GetComponent<Train>();
-            //     firstNumber.transform.localPosition = new(0,0.25f,0);
-            //     secondNumber.transform.localPosition = new(0,-0.25f,0);
-            //     // dominoCopy.SetActive(false);
-            //     _dominoObjects.Add(randDomino,dominoCopy);
-            //     _spareDominoes.Add(randDomino);                
-            // }
-        } while (_spareDominoes.Count < 15);
-        // foreach(int[] domino in _spareDominoes){drawPile.Remove(domino);}
-        if (_playerNum == 1)
+        do{AddDominoToDeck();} while (_spareDominoes.Count < 8);
+        if (!_isCPU)
         {
             float spawnX = _deckViewingPos.x;
             float spawnY = _deckViewingPos.y;
             foreach (int[] domino in _spareDominoes)
             {
-                _dominoObjects[domino].SetActive(true);
                 _dominoObjects[domino].transform.position = new(spawnX, spawnY, 0);
                 spawnX += 0.5f;
                 if (spawnX > 5){spawnX = -5;spawnY -= 2;}
             }     
         }
         FindBestPath();
+    }
+
+    public void TakeTurn(){_currentTurnPart = 1; _canTakeTurn = true;}
+
+    bool CanPlayerActuallyDoAnything()
+    {
+        GameObject[] trains = GameManager.Instance.Trains;
+        //CPU Players
+        if (_isCPU)
+        {
+            int numToMatch;
+            //If there's a double train, you must add to it
+            if (GameManager.Instance.DoubleTrainPlayerNum != 0)
+            {
+                numToMatch = GameManager.Instance.DoubleTrainPlayerScript.LastPlayedDominoNum;
+                foreach(int[] dominoNums in _spareDominoes)
+                {
+                    if (dominoNums[0] == numToMatch || dominoNums[1] == numToMatch)
+                    {
+                        GameManager.Instance.DoubleTrainPlayerScript.AddDominoToTrain(_dominoObjects[dominoNums]);
+                        return true;
+                    }
+                }
+                foreach(int[] dominoNums in _bestPathDominoes)
+                {
+                    if (dominoNums[0] == numToMatch || dominoNums[1] == numToMatch)
+                    {
+                        GameManager.Instance.DoubleTrainPlayerScript.AddDominoToTrain(_dominoObjects[dominoNums]);
+                        return true;
+                    }
+                }
+                return false;
+            }
+            //Are there any public trains we can add to using spare dominoes
+            foreach (GameObject train in trains)
+            {
+                Train trainScript = train.GetComponent<Train>();
+                if (!trainScript.IsUsable || trainScript.PlayerNum == _playerNum){continue;}
+                numToMatch = trainScript.LastPlayedDominoNum;
+                foreach (int[] dominoNums in _spareDominoes)
+                {
+                    if (dominoNums[0] == numToMatch || dominoNums[1] == numToMatch)
+                    {
+                        trainScript.AddDominoToTrain(_dominoObjects[dominoNums]);
+                        return true;
+                    }
+                }
+            }
+            //Can we add to our own train
+            foreach (int[] dominoNums in _bestPathDominoes)
+            {
+                if (dominoNums[0] == _lastPlayedDominoNum || dominoNums[1] == _lastPlayedDominoNum)
+                {
+                    AddDominoToTrain(_dominoObjects[dominoNums]);
+                    return true;
+                }
+            }
+            foreach (int[] dominoNums in _spareDominoes)
+            {
+                if (dominoNums[0] == _lastPlayedDominoNum || dominoNums[1] == _lastPlayedDominoNum)
+                {
+                    AddDominoToTrain(_dominoObjects[dominoNums]);
+                    return true;
+                }
+            }
+            return false;
+        }
+        //Human Players
+        foreach(GameObject train in trains)
+        {
+            Train trainScript = train.GetComponent<Train>();
+            if (!trainScript.IsUsable || !DoDominoNumsMatch(trainScript.LastPlayedDominoNum)){continue;}
+            _currentTurnPart = 0;
+            return true;
+        }
+        return false;
+    }
+
+    bool DoDominoNumsMatch(int numToMatch)
+    {
+        foreach(int[] dominoNums in _spareDominoes)
+        {
+            if (dominoNums[0] == numToMatch|| dominoNums[1] == numToMatch)
+            {
+                return true;
+            }
+        }
+        foreach(int[] dominoNums in _bestPathDominoes)
+        {
+            if (dominoNums[0] == numToMatch|| dominoNums[1] == numToMatch)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void ShowBestPath() //Background of button text learned from here: https://youtu.be/DtYAfmsoCxg
@@ -111,58 +353,35 @@ public class Train : MonoBehaviour, IPointerClickHandler
 
     public void AddDominoToDeckButton()
     {
-        // print("Starting");
-        AddDominoToDeck(GameManager.Instance.DrawPile);
+        AddDominoToDeck();
         FindBestPath();
-        // foreach(int[] dominoes in _spareDominoes)
-        // {
-        //     _dominoObjects[dominoes].SetActive(true);
-        // }
-        // foreach(int[] dominoes in _bestPathDominoes)
-        // {
-        //     _dominoObjects[dominoes].SetActive(true);
-        // }
-        // print("End");
     }
 
-    void AddDominoToDeck(List<int[]> drawPile)
+    void AddDominoToDeck()
     {
-        if (drawPile.Count == 0)
-        {
-            print("No more dominoes");
-            return;
-        }
+        List<int[]> drawPile = GameManager.Instance.DrawPile;
         GameObject[] numbers = GameManager.Instance.Numbers;
-        bool isAlreadyInDeck = true;
-        do
+        int[] randDomino = drawPile[Random.Range(0,drawPile.Count)];
+        GameObject dominoCopy = Instantiate(_domino);
+        GameObject firstNumber = Instantiate(numbers[randDomino[0]],dominoCopy.transform);
+        GameObject secondNumber = Instantiate(numbers[randDomino[1]],dominoCopy.transform);
+        Domino dominoScript = dominoCopy.GetComponent<Domino>();
+        dominoScript.DominoNums = randDomino;
+        dominoScript.TrainScript = this;
+        firstNumber.transform.localPosition = new(0,0.25f,0);
+        secondNumber.transform.localPosition = new(0,-0.25f,0);
+        _dominoObjects.Add(randDomino,dominoCopy);
+        _spareDominoes.Add(randDomino);
+        if (!_isCPU)
         {
-            int[] randDomino = drawPile[Random.Range(0,drawPile.Count)];
-            if (!_spareDominoes.Contains(randDomino) && !_bestPathDominoes.Contains(randDomino))
-            {
-                GameObject dominoCopy = Instantiate(_domino);
-                GameObject firstNumber = Instantiate(numbers[randDomino[0]],dominoCopy.transform);
-                GameObject secondNumber = Instantiate(numbers[randDomino[1]],dominoCopy.transform);
-                Domino dominoScript = dominoCopy.GetComponent<Domino>();
-                dominoScript.DominoNums = randDomino;
-                dominoScript.TrainScript = this;
-                firstNumber.transform.localPosition = new(0,0.25f,0);
-                secondNumber.transform.localPosition = new(0,-0.25f,0);
-                _dominoObjects.Add(randDomino,dominoCopy);
-                _spareDominoes.Add(randDomino);
-                dominoCopy.transform.position = new(_deckViewingPos.x,_deckViewingPos.y - 4, 1);
-                if (_playerNum == 1)
-                {
-                    dominoCopy.SetActive(true);
-                }
-                else
-                {
-                    dominoCopy.SetActive(false);
-                }
-                // dominoCopy.SetActive(false);
-                isAlreadyInDeck = false;
-                drawPile.Remove(randDomino);                
-            } 
-        } while (isAlreadyInDeck);
+           dominoCopy.transform.position = new(_deckViewingPos.x,_deckViewingPos.y - 4, 1);
+           if (GameManager.Instance.CurrentTurnPlayerNum != _playerNum){dominoCopy.SetActive(false);} 
+        }
+        else
+        {
+            dominoCopy.SetActive(false);
+        }
+        drawPile.Remove(randDomino);                
     }
 
     void FindBestPath()
@@ -204,19 +423,13 @@ public class Train : MonoBehaviour, IPointerClickHandler
         if (currentDominoPath.Count > _bestPathDominoes.Count)
         {
             _bestPathDominoes.Clear();
-            foreach(int[] domino in currentDominoPath)
-            {
-                _bestPathDominoes.Add(domino);
-            }
+            foreach(int[] domino in currentDominoPath){_bestPathDominoes.Add(domino);}
         } else if(currentDominoPath.Count == _bestPathDominoes.Count)
         {
             if (IsCurrentPathWorthMoreThanBest(currentDominoPath))
             {
                 _bestPathDominoes.Clear();
-                foreach(int[] domino in currentDominoPath)
-                {
-                    _bestPathDominoes.Add(domino);
-                }
+                foreach(int[] domino in currentDominoPath){_bestPathDominoes.Add(domino);}
             }
         }
     }
@@ -249,47 +462,80 @@ public class Train : MonoBehaviour, IPointerClickHandler
 
     public void AddDominoToTrain(GameObject dominoToAdd)
     {
+        dominoToAdd.SetActive(true);
         Domino dominoScript = dominoToAdd.GetComponent<Domino>();
-        dominoScript.Placed();
         Transform dominoTransform = dominoToAdd.transform;
         dominoTransform.parent = transform;
         dominoTransform.rotation = transform.rotation;
         dominoTransform.position = transform.position;
-        //TODO: put check for doubles here
-        if (trainSize == 0)
+        if (_trainSize == 0)
         {
             dominoTransform.position = transform.position;
         }
         else
         {
-            dominoTransform.localPosition = trainSize % 2 != 0 ? _lastPlayedDominoPos + _rightPosVector : _lastPlayedDominoPos + _leftPosVector;
+            dominoTransform.localPosition = _trainSize % 2 != 0 ? _lastPlayedDominoPos + _rightPosVector : _lastPlayedDominoPos + _leftPosVector;
         }
+        dominoScript.Placed(_playerNum == 9);
         int[] dominoNums = dominoScript.DominoNums;
         if(dominoNums[1] == _lastPlayedDominoNum)
         {
             dominoTransform.localRotation = new Quaternion(dominoTransform.localRotation.x,dominoTransform.localRotation.x,dominoTransform.localRotation.z + 180,dominoTransform.localRotation.w);
         }
-        trainSize++;
+        _trainSize++;
         _lastPlayedDominoPos = dominoTransform.localPosition;
+        if (IsPublicTrain && GameManager.Instance.CurrentTurnPlayerNum == _playerNum)
+        {
+            _isPublicTrain = false;
+            GameObject[] trains = GameManager.Instance.Trains;
+            foreach(GameObject train in trains)
+            {
+                Train trainScript = train.GetComponent<Train>();
+                if (trainScript.IsPublicTrain){trainScript.ChangeUsability(true);}
+            }
+            print("Your train is no longer public");
+            // Thread.Sleep(3000);
+        }
         if (dominoNums[0] == dominoNums[1])
         {
-            hasPlacedDouble = true;
-            GameManager.Instance.DoubleTrain = _playerNum;
+            GameManager.Instance.DoubleTrainPlayerNum = _playerNum;
+            GameManager.Instance.DoubleTrainPlayerScript = this;
             _lastPlayedDominoNum = dominoNums[0];
+            dominoScript.TrainScript.RemoveDominoFromDeck(dominoNums);
+            dominoScript.TrainScript = this;
+            StartCoroutine(GameManager.Instance.CurrentTurnTrainScript.DisplayTextTimer($"Player {GameManager.Instance.CurrentTurnPlayerNum} has placed a double, giving them a second turn"));
+            GameManager.Instance.CurrentTurnTrainScript.CurrentTurnPart = 1;
+            _canInteract = false;
         }
         else
         {
-            hasPlacedDouble = false;
-            GameManager.Instance.DoubleTrain = 0; 
-            _lastPlayedDominoNum = dominoNums[0] == _lastPlayedDominoNum ? dominoNums[1] : dominoNums[0];   
+            if (GameManager.Instance.DoubleTrainPlayerNum != 0)
+            {
+                GameManager.Instance.DoubleTrainPlayerNum = 0;
+                print("Double completed");
+                GameObject[] trains = GameManager.Instance.Trains;
+                foreach(GameObject train in trains)
+                {
+                    Train trainScript = train.GetComponent<Train>();
+                    if (trainScript.IsPublicTrain){trainScript.ChangeUsability(true);}
+                }
+            }
+            _lastPlayedDominoNum = dominoNums[0] == _lastPlayedDominoNum ? dominoNums[1] : dominoNums[0]; 
+            dominoScript.TrainScript.RemoveDominoFromDeck(dominoNums);
+            dominoScript.TrainScript = this;
+            if (_playerNum == GameManager.Instance.MexicanTrainScript.PlayerNum)
+            {
+                StartCoroutine(GameManager.Instance.CurrentTurnTrainScript.DisplayTextTimer($"Player {GameManager.Instance.CurrentTurnPlayerNum} has placed a ({dominoNums[0]},{dominoNums[1]}) on the Mexican train"));
+                GameManager.Instance.CurrentTurnTrainScript.CurrentTurnPart = 5;
+                _canInteract = false;
+            }
+            else
+            {
+                StartCoroutine(GameManager.Instance.CurrentTurnTrainScript.DisplayTextTimer($"Player {GameManager.Instance.CurrentTurnPlayerNum} has placed a ({dominoNums[0]},{dominoNums[1]}) on train {_playerNum}"));
+                GameManager.Instance.CurrentTurnTrainScript.CurrentTurnPart = 5;
+                _canInteract = false;
+            }
         }
-        dominoScript.TrainScript.RemoveDominoFromDeck(dominoNums);
-        dominoScript.TrainScript = this;
-    }
-
-    public int GetLastPlayedDominoNum()
-    {
-        return _lastPlayedDominoNum;
     }
 
     public void OnPointerClick(PointerEventData eventData)
@@ -306,31 +552,40 @@ public class Train : MonoBehaviour, IPointerClickHandler
             Domino clickedDominoScript = clickedDomino.GetComponent<Domino>();
             if (clickedDominoScript.DominoNums[0] == _lastPlayedDominoNum || clickedDominoScript.DominoNums[1] == _lastPlayedDominoNum)
             {
-                if ((isPublicTrain || _playerNum == GameManager.Instance.CurrentTurn) 
-                && (GameManager.Instance.DoubleTrain == 0 || GameManager.Instance.DoubleTrain == _playerNum))
+                Train currentTurnTrainScript = GameManager.Instance.CurrentTurnTrainScript;
+                if (_isUsable)
                 {
                     StopAllCoroutines();
                     _middleScreenTextObject.SetActive(false);
-                    // clickedDominoScript.Placed();
                     AddDominoToTrain(clickedDomino);   
                 }
-                else if(GameManager.Instance.DoubleTrain != 0)
+                else if(GameManager.Instance.DoubleTrainPlayerNum != 0)
                 {
                     StopAllCoroutines();
                     StartCoroutine(DisplayTextTimer("You must complete the double first"));
+                    print("You must complete the double first");
+                }
+                else if(currentTurnTrainScript.PlayerNum != _playerNum && currentTurnTrainScript.IsPublicTrain)
+                {
+                    StopAllCoroutines();
+                    StartCoroutine(DisplayTextTimer("You must add to your train first"));
+                    print("You must add to your train first");
                 }
                 else
                 {
                     StopAllCoroutines();
                     StartCoroutine(DisplayTextTimer("This domino cannot be placed here"));    
+                    print("This domino cannot be placed here");
                 }
             }
             else
             {
                 StopAllCoroutines();
                 StartCoroutine(DisplayTextTimer("This domino cannot be placed here")); 
+                print("This domino cannot be placed here");
             }
         }
+
     }
 
     public void RemoveDominoFromDeck(int[] dominoNums)
@@ -355,13 +610,24 @@ public class Train : MonoBehaviour, IPointerClickHandler
         _dominoObjects.Remove(dominoNums);
     }
 
-    IEnumerator DisplayTextTimer(string textToDisplay)
+    public void ChangeUsability(bool isUsable)
+    {
+        _isUsable = isUsable; 
+        _trainIndicatorRenderer.color = isUsable ? Color.green : Color.grey;
+    }
+
+    public IEnumerator DisplayTextTimer(string textToDisplay)
     {
         //TODO: Remove this text when someone finishes their turn or the game
         // _cannotPlaceDominoText.transform.position = dominoPos;
+        // _isEndOfTurn = true;
+        _canGoToPart1 = _canGoToPart2 = _canGoToPart3 = _canGoToPart4 = _canGoToPart5 = false;
         _middleScreenText.text = textToDisplay;
         _middleScreenTextObject.SetActive(true);
         yield return new WaitForSeconds(3);
         _middleScreenTextObject.SetActive(false);
+        _canGoToPart1 = _canGoToPart2 = _canGoToPart3 = _canGoToPart4 = _canGoToPart5 =_canInteract = true;
+        //Interact is true
+        // if (_spareDominoes.Count == 0 && _bestPathDominoes.Count == 0){GameManager.Instance.HasPlayerWon = true; print($"{_playerNum}, I won");}
     }
 }

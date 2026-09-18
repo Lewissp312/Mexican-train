@@ -22,6 +22,7 @@ public class CameraScript : MonoBehaviour
     bool _isDragging;
     bool _isViewingGame;
     bool _isViewingDeck;
+    public bool IsViewingDeck{get => _isViewingDeck;}
     bool _isViewingMexicanTrain;
     [SerializeField] TextMeshProUGUI _deckText; 
     [SerializeField] GameObject _showBestPathButton; 
@@ -46,45 +47,42 @@ public class CameraScript : MonoBehaviour
     //TODO: Add check here to stop the player using the camera when its a CPU's turn
     //TODO: Focus the camera on the CPU's turn when they make one
     { //Camera code apadted from here: https://youtu.be/H7pjj1K91HE
-        if (!GameManager.Instance.IsCpuTurn)
+        if (_click.WasPressedThisFrame())
         {
-            if (_click.WasPressedThisFrame())
-            {
-                _isDragging = true;
-                _origin = Camera.main.ScreenToWorldPoint((Vector3)Mouse.current.position.ReadValue());
-            } 
-            else if (_click.WasReleasedThisFrame())
-            {
-                _isDragging = false;
-            }    
-            else if(_gameViewButton.WasPressedThisFrame() && !_isViewingGame)
-            {
-                ActivateGameView();
-            }
-            else if (_deckViewButton.WasPressedThisFrame() && !_isViewingDeck)
-            {
-                ActivateDeckView();
-            }
-            else if(_mexicanTrainViewButton.WasPressedThisFrame() && !_isViewingMexicanTrain)
-            {
-                ActivateMexicanTrainView();
-            }
+            _isDragging = true;
+            _origin = Camera.main.ScreenToWorldPoint((Vector3)Mouse.current.position.ReadValue());
+        } 
+        else if (_click.WasReleasedThisFrame())
+        {
+            _isDragging = false;
+        }    
+        else if(_gameViewButton.WasPressedThisFrame() && !_isViewingGame)
+        {
+            ActivateGameView();
         }
+        else if (_deckViewButton.WasPressedThisFrame() && !_isViewingDeck && !GameManager.Instance.IsCpuTurn)
+        {
+            ActivateDeckView();
+        }
+        else if(_mexicanTrainViewButton.WasPressedThisFrame() && !_isViewingMexicanTrain)
+        {
+            ActivateMexicanTrainView();
+        }
+        
     }
 
     void LateUpdate()
     {
-        if (!GameManager.Instance.IsCpuTurn)
-        {
-            if (!_isDragging || _isViewingDeck){return;}
-            _difference = Camera.main.ScreenToWorldPoint((Vector3)Mouse.current.position.ReadValue()) - transform.position;
-            Vector3 newPos = _origin - _difference; 
-            UpdatePosition(newPos);
-        }
+        if (!_isDragging || _isViewingDeck){return;}
+        _difference = Camera.main.ScreenToWorldPoint((Vector3)Mouse.current.position.ReadValue()) - transform.position;
+        Vector3 newPos = _origin - _difference; 
+        UpdatePosition(newPos);
+        
     }
 
-    void ActivateGameView()
+    public void ActivateGameView()
     {
+        if (_isViewingGame){return;}
         if(_isViewingDeck)
         {
             _deckText.enabled = false;
@@ -177,9 +175,17 @@ public class CameraScript : MonoBehaviour
         transform.position = new(newX,newY,-1); 
     }
 
-    public void CheckForBoundsUpdate(float XPos, float YPos)
+    public void CheckForBoundsUpdate(float XPos, float YPos, bool isOnMexicanTrain)
     {
-        if (XPos < _mexicanTrainViewXBound)
+        if (isOnMexicanTrain)
+        {
+            print("Hello from camera");
+            if(Math.Abs(_mexicanTrainViewLowerYBound - YPos) <= 2) 
+            {
+                _mexicanTrainViewLowerYBound -= 2;
+            }
+        } 
+        else
         {
             if(Math.Abs(_gameViewXBound - XPos) <= 1 || Math.Abs(-_gameViewXBound - XPos) <= 1)
             {
@@ -190,13 +196,5 @@ public class CameraScript : MonoBehaviour
                 _gameViewYBound += 1;
             }
         }
-        else
-        {
-            if(Math.Abs(_mexicanTrainViewLowerYBound - YPos) <= 2) 
-            //|| (Math.Abs(-_mexicanTrainViewLowerYBound - YPos) <= 2))
-            {
-                _mexicanTrainViewLowerYBound -= 2;
-            }
-        } 
     }
 }
