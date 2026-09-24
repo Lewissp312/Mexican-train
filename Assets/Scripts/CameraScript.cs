@@ -38,15 +38,13 @@ public class CameraScript : MonoBehaviour
         _gameViewButton = InputSystem.actions.FindAction("Game View");
         _deckViewButton = InputSystem.actions.FindAction("Deck View");
         _mexicanTrainViewButton = InputSystem.actions.FindAction("Mexican Train View");
-        _isViewingGame = true;
         _gameViewPos = new(0,0,-1);
         _mexicanTrainViewPos = new(110,60,-1);
     }
 
     void Update() 
-    //TODO: Add check here to stop the player using the camera when its a CPU's turn
-    //TODO: Focus the camera on the CPU's turn when they make one
     { //Camera code apadted from here: https://youtu.be/H7pjj1K91HE
+        if (!GameManager.Instance.IsGameActive){return;}
         if (_click.WasPressedThisFrame())
         {
             _isDragging = true;
@@ -73,7 +71,7 @@ public class CameraScript : MonoBehaviour
 
     void LateUpdate()
     {
-        if (!_isDragging || _isViewingDeck){return;}
+        if ( !GameManager.Instance.IsGameActive || !_isDragging || _isViewingDeck){return;}
         _difference = Camera.main.ScreenToWorldPoint((Vector3)Mouse.current.position.ReadValue()) - transform.position;
         Vector3 newPos = _origin - _difference; 
         UpdatePosition(newPos);
@@ -90,7 +88,7 @@ public class CameraScript : MonoBehaviour
             _addDominoToDeckButton.SetActive(false);    
             _isViewingDeck = false; 
         }
-        else
+        else if(_isViewingMexicanTrain)
         {
             _mexicanTrainViewPos = transform.position;
             _isViewingMexicanTrain = false;
@@ -179,7 +177,6 @@ public class CameraScript : MonoBehaviour
     {
         if (isOnMexicanTrain)
         {
-            print("Hello from camera");
             if(Math.Abs(_mexicanTrainViewLowerYBound - YPos) <= 2) 
             {
                 _mexicanTrainViewLowerYBound -= 2;

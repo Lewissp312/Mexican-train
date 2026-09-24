@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class Train : MonoBehaviour, IPointerClickHandler
 {
     bool _isCPU;
+    bool _canAddDiffDomino;
+    public bool CanAddDiffDomino{get => _canAddDiffDomino; set => _canAddDiffDomino = value;}
     public bool IsCPU{get => _isCPU; set => _isCPU = value;}
     bool _isUsable;
     public bool IsUsable{get => _isUsable; set => _isUsable = value;}
@@ -39,6 +42,7 @@ public class Train : MonoBehaviour, IPointerClickHandler
     [SerializeField] GameObject _trainIndicator;
     [SerializeField] GameObject _middleScreenTextObject;
     [SerializeField] TextMeshProUGUI _middleScreenText;
+    [SerializeField] Button _showBestPathButton;
 
     void Awake()
     {
@@ -68,7 +72,6 @@ public class Train : MonoBehaviour, IPointerClickHandler
                 case 1:
                     if (_canGoToPart1)
                     {
-                        print($"I am {_playerNum} and CPU status is {_isCPU}");
                         StopAllCoroutines();
                         StartCoroutine(DisplayTextTimer($"Player {_playerNum}'s turn!")); 
                         _currentTurnPart = 2;
@@ -108,7 +111,44 @@ public class Train : MonoBehaviour, IPointerClickHandler
                         {
                             StopAllCoroutines();
                             _canInteract = false;
-                            if (GameManager.Instance.DrawPile.Count == 0)
+                            if (GameManager.Instance.DoubleTrainPlayerNum != 0 && GameManager.Instance.DominoNumsAmounts[GameManager.Instance.DoubleTrainPlayerScript.LastPlayedDominoNum] >= 13)
+                            {
+                                _canAddDiffDomino = true;
+                                if (_isCPU)
+                                {
+                                    GameManager.Instance.DoubleTrainPlayerScript.AddDominoToTrain(_dominoObjects[_spareDominoes[0]]);
+                                }
+                                else
+                                {
+                                    StartCoroutine(DisplayTextTimer($"Player {_playerNum}, as there are no more dominoes to properly complete the double, you can add one of your choosing"));
+                                    _currentTurnPart = 0;
+                                    // _canInteract = false;
+                                }
+                            }
+                            else if (GameManager.Instance.DoubleTrainPlayerNum == 0 && GameManager.Instance.DominoNumsAmounts[_lastPlayedDominoNum] >= 13)
+                            {
+                                _canAddDiffDomino = true;
+                                if (_isCPU)
+                                {
+                                    AddDominoToTrain(_dominoObjects[_spareDominoes[0]]);
+                                }
+                                else
+                                {
+                                    _isPublicTrain = true;
+                                    GameObject[] trains = GameManager.Instance.Trains;
+                                    foreach(GameObject train in trains)
+                                    {
+                                        Train trainScript = train.GetComponent<Train>();
+                                        if (trainScript.PlayerNum != _playerNum)
+                                        {
+                                            trainScript.ChangeUsability(false);
+                                        }
+                                    }
+                                    StartCoroutine(DisplayTextTimer($"Player {_playerNum}, as there are no more dominoes to add to your train,\n you can add one of your choosing"));
+                                    _currentTurnPart = 0;
+                                }
+                            } 
+                            else if (GameManager.Instance.DrawPile.Count == 0)
                             {
                                 StartCoroutine(DisplayTextTimer($"Player {_playerNum}, there are no moves you can make and the domino pile is empty"));
                                 _currentTurnPart = 5;  
@@ -118,7 +158,7 @@ public class Train : MonoBehaviour, IPointerClickHandler
                             {
                                 StartCoroutine(DisplayTextTimer($"Player {_playerNum}, there are no moves you can make, getting a domino from the pile"));
                                 _currentTurnPart = 3; 
-                                _canInteract = false;                        
+                                _canInteract = false;     
                             }
                         }
                     }
@@ -177,6 +217,7 @@ public class Train : MonoBehaviour, IPointerClickHandler
                 case 5:
                     if (_canGoToPart5)
                     {
+                        GameManager.Instance.NumOfTurns++;
                         _canInteract = false;
                         if(!_isCPU)
                         {
@@ -199,10 +240,13 @@ public class Train : MonoBehaviour, IPointerClickHandler
                         {
                             ChangeUsability(false);
                         }
-                        if (_spareDominoes.Count == 0 && _bestPathDominoes.Count == 0){GameManager.Instance.PlayerHasWon(_playerNum);}
+                        _canTakeTurn = false;
+                        if (_spareDominoes.Count == 0 && _bestPathDominoes.Count == 0)
+                        {
+                            GameManager.Instance.PlayerHasWon(_playerNum);
+                        }
                         else
                         {
-                           _canTakeTurn = false;
                            GameManager.Instance.IsAtEndOfTurn = true; 
                         }   
                     }
@@ -212,10 +256,13 @@ public class Train : MonoBehaviour, IPointerClickHandler
         
     }
 
-    public void GenerateStartingDominoes()
-    { //add the starting num here if you want to control it in game manager (currently always set to the double twelve)
-      //TODO: Adjust the number of dominoes the player gets based on how many players there are
-        do{AddDominoToDeck();} while (_spareDominoes.Count < 8);
+    public void GenerateStartingDominoes(int numOfPlayers)
+    {
+        int numOfDominoes;
+        if (numOfPlayers >= 2 && numOfPlayers <= 4){numOfDominoes = 15;}
+        else if (numOfPlayers == 5 || numOfPlayers == 6){numOfDominoes = 12;}
+        else{numOfDominoes = 11;}
+        do{AddDominoToDeck();} while (_spareDominoes.Count < numOfDominoes);
         if (!_isCPU)
         {
             float spawnX = _deckViewingPos.x;
@@ -230,7 +277,13 @@ public class Train : MonoBehaviour, IPointerClickHandler
         FindBestPath();
     }
 
-    public void TakeTurn(){_currentTurnPart = 1; _canTakeTurn = true;}
+    public void TakeTurn()
+    {
+        _currentTurnPart = 1; 
+        _showBestPathButton.onClick.RemoveAllListeners();
+        _showBestPathButton.onClick.AddListener(ShowBestPath);
+        _canTakeTurn = true;
+    }
 
     bool CanPlayerActuallyDoAnything()
     {
@@ -327,6 +380,7 @@ public class Train : MonoBehaviour, IPointerClickHandler
 
     public void ShowBestPath() //Background of button text learned from here: https://youtu.be/DtYAfmsoCxg
     {
+        if (GameManager.Instance.CurrentTurnPlayerNum != _playerNum){return;}
         if (GameManager.Instance.ClickedDomino != null)
         {
             GameManager.Instance.ClickedDomino.GetComponent<Domino>().DeselectDomino();
@@ -460,6 +514,20 @@ public class Train : MonoBehaviour, IPointerClickHandler
         return currentDominoPathTotal > bestDominoPathTotal;
     }
 
+    public int CalculateFinalScore()
+    {
+        int total = 0;
+        foreach(int[] dominoNums in _spareDominoes)
+        {
+            total += (dominoNums[0] == 0 && dominoNums[1] == 0) ? 50 : dominoNums[0] + dominoNums[1];
+        }
+        foreach(int[] dominoNums in _bestPathDominoes)
+        {
+            total += (dominoNums[0] == 0 && dominoNums[1] == 0) ? 50 : dominoNums[0] + dominoNums[1];
+        }
+        return total;
+    }
+
     public void AddDominoToTrain(GameObject dominoToAdd)
     {
         dominoToAdd.SetActive(true);
@@ -476,8 +544,13 @@ public class Train : MonoBehaviour, IPointerClickHandler
         {
             dominoTransform.localPosition = _trainSize % 2 != 0 ? _lastPlayedDominoPos + _rightPosVector : _lastPlayedDominoPos + _leftPosVector;
         }
-        dominoScript.Placed(_playerNum == 9);
+        dominoScript.Placed(_playerNum == GameManager.Instance.Trains.Length);
         int[] dominoNums = dominoScript.DominoNums;
+        GameManager.Instance.ChangeDominoNumsAmounts(dominoNums[0]);
+        if (dominoNums[0] != dominoNums[1])
+        {
+            GameManager.Instance.ChangeDominoNumsAmounts(dominoNums[1]);
+        }
         if(dominoNums[1] == _lastPlayedDominoNum)
         {
             dominoTransform.localRotation = new Quaternion(dominoTransform.localRotation.x,dominoTransform.localRotation.x,dominoTransform.localRotation.z + 180,dominoTransform.localRotation.w);
@@ -494,7 +567,6 @@ public class Train : MonoBehaviour, IPointerClickHandler
                 if (trainScript.IsPublicTrain){trainScript.ChangeUsability(true);}
             }
             print("Your train is no longer public");
-            // Thread.Sleep(3000);
         }
         if (dominoNums[0] == dominoNums[1])
         {
@@ -503,9 +575,17 @@ public class Train : MonoBehaviour, IPointerClickHandler
             _lastPlayedDominoNum = dominoNums[0];
             dominoScript.TrainScript.RemoveDominoFromDeck(dominoNums);
             dominoScript.TrainScript = this;
-            StartCoroutine(GameManager.Instance.CurrentTurnTrainScript.DisplayTextTimer($"Player {GameManager.Instance.CurrentTurnPlayerNum} has placed a double, giving them a second turn"));
+            StartCoroutine(GameManager.Instance.CurrentTurnTrainScript.DisplayTextTimer(
+                $"Player {GameManager.Instance.CurrentTurnPlayerNum} has placed a double {dominoNums[0]} on " +
+                $"{(_playerNum == GameManager.Instance.Trains.Length ? "the Mexican Train" : $"Player {_playerNum}'s train")},\n giving them another turn" +
+                $"{(GameManager.Instance.IsCpuTurn && GameManager.Instance.CurrentTurnTrainScript.CanAddDiffDomino ? ".\n There were no other proper dominoes available" : "")}"));
+            if (GameManager.Instance.CurrentTurnTrainScript.CanAddDiffDomino)
+            {
+                GameManager.Instance.CurrentTurnTrainScript.CanAddDiffDomino = false;   
+            };
             GameManager.Instance.CurrentTurnTrainScript.CurrentTurnPart = 1;
             _canInteract = false;
+            GameManager.Instance.NumOfTurns++;
         }
         else
         {
@@ -520,21 +600,26 @@ public class Train : MonoBehaviour, IPointerClickHandler
                     if (trainScript.IsPublicTrain){trainScript.ChangeUsability(true);}
                 }
             }
-            _lastPlayedDominoNum = dominoNums[0] == _lastPlayedDominoNum ? dominoNums[1] : dominoNums[0]; 
-            dominoScript.TrainScript.RemoveDominoFromDeck(dominoNums);
-            dominoScript.TrainScript = this;
-            if (_playerNum == GameManager.Instance.MexicanTrainScript.PlayerNum)
+            if (GameManager.Instance.CurrentTurnTrainScript.CanAddDiffDomino)
             {
-                StartCoroutine(GameManager.Instance.CurrentTurnTrainScript.DisplayTextTimer($"Player {GameManager.Instance.CurrentTurnPlayerNum} has placed a ({dominoNums[0]},{dominoNums[1]}) on the Mexican train"));
-                GameManager.Instance.CurrentTurnTrainScript.CurrentTurnPart = 5;
-                _canInteract = false;
+                _lastPlayedDominoNum = dominoNums[1]; 
             }
             else
             {
-                StartCoroutine(GameManager.Instance.CurrentTurnTrainScript.DisplayTextTimer($"Player {GameManager.Instance.CurrentTurnPlayerNum} has placed a ({dominoNums[0]},{dominoNums[1]}) on train {_playerNum}"));
-                GameManager.Instance.CurrentTurnTrainScript.CurrentTurnPart = 5;
-                _canInteract = false;
-            }
+                _lastPlayedDominoNum = dominoNums[0] == _lastPlayedDominoNum ? dominoNums[1] : dominoNums[0]; 
+            } 
+            dominoScript.TrainScript.RemoveDominoFromDeck(dominoNums);
+            dominoScript.TrainScript = this;
+            StartCoroutine(GameManager.Instance.CurrentTurnTrainScript.DisplayTextTimer(
+                $"Player {GameManager.Instance.CurrentTurnPlayerNum} has placed a ({dominoNums[0]},{dominoNums[1]}) on " + 
+                $"{(_playerNum == GameManager.Instance.Trains.Length ? "the Mexican Train" : $"Player {_playerNum}'s train")}" +
+                $"{(GameManager.Instance.IsCpuTurn && GameManager.Instance.CurrentTurnTrainScript.CanAddDiffDomino ? ".\n There were no other proper dominoes available" : "")}"));
+            if (GameManager.Instance.CurrentTurnTrainScript.CanAddDiffDomino)
+            {
+                GameManager.Instance.CurrentTurnTrainScript.CanAddDiffDomino = false;   
+            };
+            GameManager.Instance.CurrentTurnTrainScript.CurrentTurnPart = 5;
+            _canInteract = false;
         }
     }
 
@@ -545,12 +630,11 @@ public class Train : MonoBehaviour, IPointerClickHandler
 
     public void CheckIfDominoCanBeAdded()
     {
-        //TODO: Add checks for who's turn it is and whether the train is open
         GameObject clickedDomino = GameManager.Instance.ClickedDomino;
         if(clickedDomino != null)
         {
             Domino clickedDominoScript = clickedDomino.GetComponent<Domino>();
-            if (clickedDominoScript.DominoNums[0] == _lastPlayedDominoNum || clickedDominoScript.DominoNums[1] == _lastPlayedDominoNum)
+            if (clickedDominoScript.DominoNums[0] == _lastPlayedDominoNum || clickedDominoScript.DominoNums[1] == _lastPlayedDominoNum || _canAddDiffDomino)
             {
                 Train currentTurnTrainScript = GameManager.Instance.CurrentTurnTrainScript;
                 if (_isUsable)
@@ -618,16 +702,11 @@ public class Train : MonoBehaviour, IPointerClickHandler
 
     public IEnumerator DisplayTextTimer(string textToDisplay)
     {
-        //TODO: Remove this text when someone finishes their turn or the game
-        // _cannotPlaceDominoText.transform.position = dominoPos;
-        // _isEndOfTurn = true;
         _canGoToPart1 = _canGoToPart2 = _canGoToPart3 = _canGoToPart4 = _canGoToPart5 = false;
         _middleScreenText.text = textToDisplay;
         _middleScreenTextObject.SetActive(true);
-        yield return new WaitForSeconds(3);
+        yield return new WaitForSeconds(0f);
         _middleScreenTextObject.SetActive(false);
         _canGoToPart1 = _canGoToPart2 = _canGoToPart3 = _canGoToPart4 = _canGoToPart5 =_canInteract = true;
-        //Interact is true
-        // if (_spareDominoes.Count == 0 && _bestPathDominoes.Count == 0){GameManager.Instance.HasPlayerWon = true; print($"{_playerNum}, I won");}
     }
 }
