@@ -26,6 +26,7 @@ public class Train : MonoBehaviour, IPointerClickHandler
     int _trainSize;
     int _lastPlayedDominoNum;
     public int LastPlayedDominoNum{get => _lastPlayedDominoNum;}
+    readonly WaitForSeconds gameDelay = new(2.5f);
     SpriteRenderer _trainIndicatorRenderer;
     Vector3 _lastPlayedDominoPos;
     readonly Vector3 _rightPosVector = new(0.42f,-0.6f,0);
@@ -53,13 +54,12 @@ public class Train : MonoBehaviour, IPointerClickHandler
         _spareDominoes = new();
         _dominoObjects = new();
         _trainIndicatorRenderer = _trainIndicator.GetComponent<SpriteRenderer>();
-        if (_playerNum == 9){_isPublicTrain = true; ChangeUsability(true);}
     } 
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        
+        if (_playerNum == GameManager.Instance.Trains.Length){_isPublicTrain = true; ChangeUsability(true);}
     }
 
     // Update is called once per frame
@@ -116,7 +116,7 @@ public class Train : MonoBehaviour, IPointerClickHandler
                                 _canAddDiffDomino = true;
                                 if (_isCPU)
                                 {
-                                    GameManager.Instance.DoubleTrainPlayerScript.AddDominoToTrain(_dominoObjects[_spareDominoes[0]]);
+                                    GameManager.Instance.DoubleTrainPlayerScript.AddDominoToTrain(_spareDominoes.Count > 0 ? _dominoObjects[_spareDominoes[0]] : _dominoObjects[_bestPathDominoes[0]]);
                                 }
                                 else
                                 {
@@ -150,7 +150,11 @@ public class Train : MonoBehaviour, IPointerClickHandler
                             } 
                             else if (GameManager.Instance.DrawPile.Count == 0)
                             {
-                                StartCoroutine(DisplayTextTimer($"Player {_playerNum}, there are no moves you can make and the domino pile is empty"));
+                                if (!_isPublicTrain)
+                                {
+                                    _isPublicTrain = true;   
+                                }
+                                StartCoroutine(DisplayTextTimer($"Player {_playerNum}, there are no moves you can make and the domino pile is empty. Your train is public"));
                                 _currentTurnPart = 5;  
                                 _canInteract = false;
                             }
@@ -577,7 +581,8 @@ public class Train : MonoBehaviour, IPointerClickHandler
             dominoScript.TrainScript = this;
             StartCoroutine(GameManager.Instance.CurrentTurnTrainScript.DisplayTextTimer(
                 $"Player {GameManager.Instance.CurrentTurnPlayerNum} has placed a double {dominoNums[0]} on " +
-                $"{(_playerNum == GameManager.Instance.Trains.Length ? "the Mexican Train" : $"Player {_playerNum}'s train")},\n giving them another turn" +
+                $"{(_playerNum == GameManager.Instance.CurrentTurnPlayerNum ? "their own train" : _playerNum == GameManager.Instance.Trains.Length ? "the Mexican Train" : $"Player {_playerNum}'s train")}," +
+                "\n giving them another turn" +
                 $"{(GameManager.Instance.IsCpuTurn && GameManager.Instance.CurrentTurnTrainScript.CanAddDiffDomino ? ".\n There were no other proper dominoes available" : "")}"));
             if (GameManager.Instance.CurrentTurnTrainScript.CanAddDiffDomino)
             {
@@ -612,7 +617,7 @@ public class Train : MonoBehaviour, IPointerClickHandler
             dominoScript.TrainScript = this;
             StartCoroutine(GameManager.Instance.CurrentTurnTrainScript.DisplayTextTimer(
                 $"Player {GameManager.Instance.CurrentTurnPlayerNum} has placed a ({dominoNums[0]},{dominoNums[1]}) on " + 
-                $"{(_playerNum == GameManager.Instance.Trains.Length ? "the Mexican Train" : $"Player {_playerNum}'s train")}" +
+                $"{(_playerNum == GameManager.Instance.CurrentTurnPlayerNum ? "their own train" : _playerNum == GameManager.Instance.Trains.Length ? "the Mexican train" : $"Player {_playerNum}'s train")}" +
                 $"{(GameManager.Instance.IsCpuTurn && GameManager.Instance.CurrentTurnTrainScript.CanAddDiffDomino ? ".\n There were no other proper dominoes available" : "")}"));
             if (GameManager.Instance.CurrentTurnTrainScript.CanAddDiffDomino)
             {
@@ -705,7 +710,7 @@ public class Train : MonoBehaviour, IPointerClickHandler
         _canGoToPart1 = _canGoToPart2 = _canGoToPart3 = _canGoToPart4 = _canGoToPart5 = false;
         _middleScreenText.text = textToDisplay;
         _middleScreenTextObject.SetActive(true);
-        yield return new WaitForSeconds(0f);
+        yield return gameDelay;
         _middleScreenTextObject.SetActive(false);
         _canGoToPart1 = _canGoToPart2 = _canGoToPart3 = _canGoToPart4 = _canGoToPart5 =_canInteract = true;
     }

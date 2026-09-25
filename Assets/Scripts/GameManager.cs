@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
+using UnityEditor.AssetImporters;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -25,6 +27,7 @@ public class GameManager : MonoBehaviour
     public int CurrentTurnPlayerNum{get => _currentTurnPlayerNum;}
     int _doubleTrainPlayerNum;
     public int DoubleTrainPlayerNum{get => _doubleTrainPlayerNum; set => _doubleTrainPlayerNum = value;}
+    readonly WaitForSeconds gameDelay = new(2.5f);
     public enum PlayerType{CPU,HUMAN,NOT_PLAYING}
     Dictionary<int, PlayerType> _playerTypes;
     Dictionary<int, int> _dominoNumsAmounts;
@@ -39,6 +42,7 @@ public class GameManager : MonoBehaviour
     public GameObject MexicanTrain{get => _mexicanTrain;}
     Train _mexicanTrainScript;
     public Train MexicanTrainScript{get => _mexicanTrainScript;}
+    readonly Vector3 _endPos = new(-110,0,-1);
     CameraScript _cameraScript;
     [SerializeField] GameObject[] _numbers; 
     public GameObject[] Numbers{get => _numbers;}
@@ -48,6 +52,9 @@ public class GameManager : MonoBehaviour
     [SerializeField] GameObject _playerDropDowns;
     [SerializeField] GameObject _middleScreenTextObject;
     [SerializeField] TextMeshProUGUI _middleScreenText;
+    [SerializeField] GameObject _endingObjects;
+    [SerializeField] TextMeshProUGUI _endingWinnerText;
+    [SerializeField] TextMeshProUGUI _endingScoresText;
 
     void Awake()
     {
@@ -156,7 +163,7 @@ public class GameManager : MonoBehaviour
     {
         _middleScreenText.text = textToDisplay;
         _middleScreenTextObject.SetActive(true);
-        yield return new WaitForSeconds(3);
+        yield return gameDelay;
         _middleScreenTextObject.SetActive(false);
     }
 
@@ -174,10 +181,11 @@ public class GameManager : MonoBehaviour
 
     public void PlayerHasWon(int playerNum)
     {
+        Camera.main.transform.position = _endPos;
         _isAtEndOfTurn = _isAtStartOfTurn = _isGameActive = false;
-        print($"Player {playerNum} has won the game!");
+        _endingObjects.SetActive(true);
+        _endingWinnerText.text = $"Player {playerNum} has won the game!";
         int[,] playerScoreValues = new int[_trains.Length,2];
-        print(playerScoreValues.Length);
         for (int i = 0; i < _trains.Length; i++)
         {
             if (_playerTypes[i+1] == PlayerType.NOT_PLAYING || i+1 == playerNum)
@@ -189,7 +197,6 @@ public class GameManager : MonoBehaviour
             int playerScore = trainScript.CalculateFinalScore();
             playerScoreValues[i,0] = trainScript.PlayerNum;
             playerScoreValues[i,1] = playerScore;
-            // print($"Player: {scorePlayerValues[i,0]}, score: {scorePlayerValues[i,1]}");
         }
         bool isSorted = false;
         do
@@ -210,12 +217,32 @@ public class GameManager : MonoBehaviour
             }
             if (!hasChanged){isSorted = true;}
         } while(!isSorted);
+        int place = 2;
+        int previousScore = 0;
         for (int i = 0; i < _trains.Length; i++)
         {
             if(playerScoreValues[i,0] == 0){continue;}
-            print($"Sorted: Player: {playerScoreValues[i,0]}, score: {playerScoreValues[i,1]}");
+            int currentScore = playerScoreValues[i,1];
+            if (previousScore > 0)
+            {
+                if (currentScore != previousScore){place++;}
+            }
+            string placeEnding = place switch
+            {
+                2 => "nd",
+                3 => "rd",
+                _ => "th"
+            };
+            _endingScoresText.text +=  $"{place}{placeEnding} place: Player {playerScoreValues[i,0]}, {currentScore} point{(currentScore == 1 ? "" : "s")}\n";
+            previousScore = currentScore;
         }
+        _endingScoresText.text += $"Game took {_numOfTurns} turns"; 
         print($"Game took {_numOfTurns} turns");
+    }
+
+    public void RestartGame()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
 }
