@@ -1,49 +1,47 @@
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
-using UnityEditor.AssetImporters;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
-    GameObject _clickedDomino;
-    public GameObject ClickedDomino{get => _clickedDomino; set => _clickedDomino = value;}
     bool _isGameActive;
     public bool IsGameActive{get => _isGameActive; set => _isGameActive = value;}
-    bool _isAtStartOfTurn;
     bool _isAtEndOfTurn; 
     public bool IsAtEndOfTurn{set => _isAtEndOfTurn = value;}
     bool _isCpuTurn;
     public bool IsCpuTurn{get => _isCpuTurn;}
-    bool _hasTurnEnded;
-    public bool HasTurnEnded{get => _hasTurnEnded;set => _hasTurnEnded = value;}
-    bool _hasPlayerWon;
-    public bool HasPlayerWon{get => _hasPlayerWon;set => _hasPlayerWon = value;}
+    bool _isAtStartOfTurn;
     int _numOfTurns;
     public int NumOfTurns{get => _numOfTurns; set => _numOfTurns = value;}
     int _currentTurnPlayerNum;
     public int CurrentTurnPlayerNum{get => _currentTurnPlayerNum;}
     int _doubleTrainPlayerNum;
     public int DoubleTrainPlayerNum{get => _doubleTrainPlayerNum; set => _doubleTrainPlayerNum = value;}
-    readonly WaitForSeconds gameDelay = new(2.5f);
+    int _mexicanTrainPlayerNum;
+    public int MexicanTrainPlayerNum{get => _mexicanTrainPlayerNum; set => _mexicanTrainPlayerNum = value;}
+    int _numOfTrains;
+    public int NumOfTrains{get => _numOfTrains;}
     public enum PlayerType{CPU,HUMAN,NOT_PLAYING}
     Dictionary<int, PlayerType> _playerTypes;
     Dictionary<int, int> _dominoNumsAmounts;
     public Dictionary<int,int> DominoNumsAmounts{get => _dominoNumsAmounts;}
-    Train _doubleTrainPlayerScript;
-    public Train DoubleTrainPlayerScript{get => _doubleTrainPlayerScript; set => _doubleTrainPlayerScript = value;}
     List<int[]> _drawPile;
     public List<int[]> DrawPile{get => _drawPile;}
+    Train _doubleTrainPlayerScript;
+    public Train DoubleTrainPlayerScript{get => _doubleTrainPlayerScript; set => _doubleTrainPlayerScript = value;}
     Train _currentTurnTrainScript;
     public Train CurrentTurnTrainScript{get => _currentTurnTrainScript;}
-    GameObject _mexicanTrain;
-    public GameObject MexicanTrain{get => _mexicanTrain;}
     Train _mexicanTrainScript;
     public Train MexicanTrainScript{get => _mexicanTrainScript;}
     readonly Vector3 _endPos = new(-110,0,-1);
     CameraScript _cameraScript;
+    readonly WaitForSeconds gameDelay = new(2.5f);
+    GameObject _mexicanTrain;
+    GameObject _clickedDomino;
+    public GameObject ClickedDomino{get => _clickedDomino; set => _clickedDomino = value;}
     [SerializeField] GameObject[] _numbers; 
     public GameObject[] Numbers{get => _numbers;}
     [SerializeField] GameObject[] _trains;
@@ -51,41 +49,39 @@ public class GameManager : MonoBehaviour
     [SerializeField] GameObject _menuObjects;
     [SerializeField] GameObject _playerDropDowns;
     [SerializeField] GameObject _middleScreenTextObject;
-    [SerializeField] TextMeshProUGUI _middleScreenText;
     [SerializeField] GameObject _endingObjects;
+    [SerializeField] TextMeshProUGUI _middleScreenText;
     [SerializeField] TextMeshProUGUI _endingWinnerText;
     [SerializeField] TextMeshProUGUI _endingScoresText;
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //Unity functions
 
     void Awake()
     {
         if (Instance != null && Instance != this) Destroy(gameObject);
         else Instance = this;
         _currentTurnPlayerNum = 1;
+        _numOfTrains = _trains.Length;
         _clickedDomino = null;
         _drawPile = new();
-        GenerateDrawPile();
-        _cameraScript = Camera.main.gameObject.GetComponent<CameraScript>();
         _playerTypes = new();
-        for (int i=0; i < _trains.Length; i++)
+        _mexicanTrain = _trains[^1];
+        _mexicanTrainScript = _mexicanTrain.GetComponent<Train>();
+        _mexicanTrainPlayerNum = _mexicanTrainScript.PlayerNum;
+        _playerTypes[_mexicanTrainPlayerNum] = PlayerType.NOT_PLAYING;
+        for (int i=0; i < _numOfTrains - 1; i++)
         {
-            if (i + 1 == _trains.Length)
-            {
-                _playerTypes[i+1] = PlayerType.NOT_PLAYING; 
-                break;
-            }
+            //The Mexican Train is the last train in the list, so ignore the last value 
             _playerTypes[i+1] = PlayerType.CPU;
         }
         _dominoNumsAmounts = new();
         for (int i = 0; i < _numbers.Length; i++){_dominoNumsAmounts[i] = 0;}
-    } 
-    void Start()
-    {
-        _mexicanTrain = _trains[^1];
-        _mexicanTrainScript = _mexicanTrain.GetComponent<Train>();
+        _cameraScript = Camera.main.gameObject.GetComponent<CameraScript>();
         _currentTurnTrainScript = _trains[CurrentTurnPlayerNum - 1].GetComponent<Train>();
-    }
+        GenerateDrawPile();
+    } 
 
-    // Update is called once per frame
     void Update()
     {
         if (_isGameActive)
@@ -101,7 +97,7 @@ public class GameManager : MonoBehaviour
                 do
                 {
                     _currentTurnPlayerNum++;
-                    if (_currentTurnPlayerNum == _trains.Length){_currentTurnPlayerNum = 1;}
+                    if (_currentTurnPlayerNum == _mexicanTrainPlayerNum){_currentTurnPlayerNum = 1;}
                     if (_playerTypes[_currentTurnPlayerNum] != PlayerType.NOT_PLAYING)
                     {
                         isAValidTrain = true;
@@ -115,6 +111,9 @@ public class GameManager : MonoBehaviour
             }   
         }
     }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Private
 
     void GenerateDrawPile()
     {
@@ -132,7 +131,7 @@ public class GameManager : MonoBehaviour
     void StartGame()
     {
         int numOfPlayers = 0;
-        for(int i = 0; i < _trains.Length; i++)
+        for(int i = 0; i < _numOfTrains; i++)
         {
             if (_playerTypes[i + 1] == PlayerType.NOT_PLAYING){continue;}
             numOfPlayers++;
@@ -142,7 +141,7 @@ public class GameManager : MonoBehaviour
             StartCoroutine(DisplayTextTimer("You must have at least two players to start"));
             return;
         }
-        for(int i = 0; i < _trains.Length;i++)
+        for(int i = 0; i < _numOfTrains;i++)
         {
             PlayerType trainStatus = _playerTypes[i + 1];
             if (trainStatus == PlayerType.NOT_PLAYING){continue;}
@@ -167,14 +166,15 @@ public class GameManager : MonoBehaviour
         _middleScreenTextObject.SetActive(false);
     }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Public
+
     public void StartGameButton(){StartGame();} 
 
-    public void ChangePlayerStatus(int player)
+    public void ChangePlayerStatus(int playerNum)
     {
-
-        int typeSelection = _playerDropDowns.transform.GetChild(player - 1).GetComponentInChildren<TMP_Dropdown>().value;
-        print(typeSelection);
-        _playerTypes[player] = (PlayerType) typeSelection;
+        int typeSelection = _playerDropDowns.transform.GetChild(playerNum - 1).GetComponentInChildren<TMP_Dropdown>().value;
+        _playerTypes[playerNum] = (PlayerType) typeSelection;
     }
 
     public void ChangeDominoNumsAmounts(int dominoNum){_dominoNumsAmounts[dominoNum]++;}
@@ -185,8 +185,8 @@ public class GameManager : MonoBehaviour
         _isAtEndOfTurn = _isAtStartOfTurn = _isGameActive = false;
         _endingObjects.SetActive(true);
         _endingWinnerText.text = $"Player {playerNum} has won the game!";
-        int[,] playerScoreValues = new int[_trains.Length,2];
-        for (int i = 0; i < _trains.Length; i++)
+        int[,] playerScoreValues = new int[_numOfTrains,2];
+        for (int i = 0; i < _numOfTrains; i++)
         {
             if (_playerTypes[i+1] == PlayerType.NOT_PLAYING || i+1 == playerNum)
             {
@@ -202,7 +202,7 @@ public class GameManager : MonoBehaviour
         do
         {
             bool hasChanged = false;
-            for (int i = 0; i < _trains.Length - 1; i++)
+            for (int i = 0; i < _numOfTrains - 1; i++)
             {
                 if (playerScoreValues[i,1] > playerScoreValues[i+1, 1])
                 {
@@ -219,7 +219,7 @@ public class GameManager : MonoBehaviour
         } while(!isSorted);
         int place = 2;
         int previousScore = 0;
-        for (int i = 0; i < _trains.Length; i++)
+        for (int i = 0; i < _numOfTrains; i++)
         {
             if(playerScoreValues[i,0] == 0){continue;}
             int currentScore = playerScoreValues[i,1];

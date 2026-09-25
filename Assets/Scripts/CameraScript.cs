@@ -5,6 +5,16 @@ using UnityEngine.InputSystem;
 
 public class CameraScript : MonoBehaviour
 {
+    bool _isViewingDeck;
+    public bool IsViewingDeck{get => _isViewingDeck;}
+    bool _isDragging;
+    bool _isViewingGame;
+    bool _isViewingMexicanTrain;
+    float _gameViewYBound;
+    float _gameViewXBound;
+    float _mexicanTrainViewLowerYBound;
+    readonly float _mexicanTrainViewUpperYBound = 60;
+    readonly float _mexicanTrainViewXBound = 110;
     InputAction _click;
     InputAction _gameViewButton;
     InputAction _deckViewButton;
@@ -14,19 +24,12 @@ public class CameraScript : MonoBehaviour
     Vector3 _gameViewPos;
     Vector3 _mexicanTrainViewPos;
     readonly Vector3 _deckViewingPos = new(0,-55f,-1);
-    float _gameViewYBound;
-    float _gameViewXBound;
-    readonly float _mexicanTrainViewUpperYBound = 60;
-    float _mexicanTrainViewLowerYBound;
-    readonly float _mexicanTrainViewXBound = 110;
-    bool _isDragging;
-    bool _isViewingGame;
-    bool _isViewingDeck;
-    public bool IsViewingDeck{get => _isViewingDeck;}
-    bool _isViewingMexicanTrain;
     [SerializeField] TextMeshProUGUI _deckText; 
     [SerializeField] GameObject _showBestPathButton; 
     [SerializeField] GameObject _addDominoToDeckButton;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Unity functions
 
 
     void Awake()
@@ -78,25 +81,9 @@ public class CameraScript : MonoBehaviour
         
     }
 
-    public void ActivateGameView()
-    {
-        if (_isViewingGame){return;}
-        if(_isViewingDeck)
-        {
-            _deckText.enabled = false;
-            _showBestPathButton.SetActive(false);
-            _addDominoToDeckButton.SetActive(false);    
-            _isViewingDeck = false; 
-        }
-        else if(_isViewingMexicanTrain)
-        {
-            _mexicanTrainViewPos = transform.position;
-            _isViewingMexicanTrain = false;
-        }
-        transform.position = _gameViewPos;
-        _isViewingGame = true;
-    }
-    
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Private
+
     void ActivateDeckView()
     {
         if(_isViewingGame)
@@ -173,8 +160,35 @@ public class CameraScript : MonoBehaviour
         transform.position = new(newX,newY,-1); 
     }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Public
+
+    public void ActivateGameView()
+    {
+        //Public because it is used by gameManager at the start of the game
+        // if (_isViewingGame){return;}
+        if(_isViewingDeck)
+        {
+            _deckText.enabled = false;
+            _showBestPathButton.SetActive(false);
+            _addDominoToDeckButton.SetActive(false);    
+            _isViewingDeck = false; 
+        }
+        else if(_isViewingMexicanTrain)
+        {
+            _mexicanTrainViewPos = transform.position;
+            _isViewingMexicanTrain = false;
+        }
+        transform.position = _gameViewPos;
+        _isViewingGame = true;
+    }
+
+    /// <summary>
+    /// Checks if a domino has gotten close to or exceeded the camera bounds so that the bounds can be updated
+    /// </summary>
     public void CheckForBoundsUpdate(float XPos, float YPos, bool isOnMexicanTrain)
     {
+        
         if (isOnMexicanTrain)
         {
             if(Math.Abs(_mexicanTrainViewLowerYBound - YPos) <= 2) 
