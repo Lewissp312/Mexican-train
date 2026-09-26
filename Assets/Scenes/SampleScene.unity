@@ -8654,8 +8654,8 @@ MonoBehaviour:
   _menuObjects: {fileID: 1674410125}
   _playerDropDowns: {fileID: 781364490}
   _middleScreenTextObject: {fileID: 1046290232}
-  _middleScreenText: {fileID: 54783667}
   _endingObjects: {fileID: 617104270}
+  _middleScreenText: {fileID: 54783667}
   _endingWinnerText: {fileID: 963348778}
   _endingScoresText: {fileID: 2036930152}
 --- !u!4 &1175856160
@@ -13860,9 +13860,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1989602669}
-        m_TargetAssemblyTypeName: Train, Assembly-CSharp
-        m_MethodName: ShowBestPath
+      - m_Target: {fileID: 1175856159}
+        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
+        m_MethodName: ShowBestPathButton
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

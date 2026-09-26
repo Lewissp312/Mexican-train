@@ -484,8 +484,6 @@ public class Train : MonoBehaviour, IPointerClickHandler
     public void TakeTurn()
     {
         _currentTurnPart = 1; 
-        _showBestPathButton.onClick.RemoveAllListeners();
-        _showBestPathButton.onClick.AddListener(ShowBestPath);
         _canTakeTurn = true;
     }
 
@@ -630,30 +628,11 @@ public class Train : MonoBehaviour, IPointerClickHandler
             Domino clickedDominoScript = clickedDomino.GetComponent<Domino>();
             if (clickedDominoScript.DominoNums[0] == _lastPlayedDominoNum || clickedDominoScript.DominoNums[1] == _lastPlayedDominoNum || _canAddDiffDomino)
             {
-                Train currentTurnTrainScript = GameManager.Instance.CurrentTurnTrainScript;
                 if (_isUsable)
                 {
                     StopAllCoroutines();
                     _middleScreenTextObject.SetActive(false);
                     AddDominoToTrain(clickedDomino);   
-                }
-                // else if(GameManager.Instance.DoubleTrainPlayerNum != 0)
-                // {
-                //     StopAllCoroutines();
-                //     StartCoroutine(DisplayTextTimer("You must complete the double first"));
-                //     print("You must complete the double first");
-                // }
-                else if(currentTurnTrainScript.PlayerNum != _playerNum && currentTurnTrainScript.IsPublicTrain)
-                {
-                    StopAllCoroutines();
-                    StartCoroutine(DisplayTextTimer("You must add to your train first"));
-                    print("You must add to your train first");
-                }
-                else
-                {
-                    StopAllCoroutines();
-                    StartCoroutine(DisplayTextTimer("This domino cannot be placed here"));    
-                    print("This domino cannot be placed here");
                 }
             }
             else

@@ -99,7 +99,7 @@ public class CameraScript : MonoBehaviour
         transform.position = _deckViewingPos;
         _deckText.enabled = true;
         _showBestPathButton.SetActive(true);
-        _addDominoToDeckButton.SetActive(true);    
+        // _addDominoToDeckButton.SetActive(true);    
         _isViewingDeck = true; 
     }
 

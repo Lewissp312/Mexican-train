@@ -179,6 +179,11 @@ public class GameManager : MonoBehaviour
 
     public void ChangeDominoNumsAmounts(int dominoNum){_dominoNumsAmounts[dominoNum]++;}
 
+    public void ShowBestPathButton()
+    {
+        CurrentTurnTrainScript.ShowBestPath();
+    }
+
     public void PlayerHasWon(int playerNum)
     {
         Camera.main.transform.position = _endPos;
