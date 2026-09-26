@@ -166,7 +166,6 @@ public class CameraScript : MonoBehaviour
     public void ActivateGameView()
     {
         //Public because it is used by gameManager at the start of the game
-        // if (_isViewingGame){return;}
         if(_isViewingDeck)
         {
             _deckText.enabled = false;
